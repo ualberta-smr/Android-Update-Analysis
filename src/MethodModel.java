@@ -140,7 +140,7 @@ public class MethodModel<T> {
             if (!isConstructor()) {
                 returnType = ((CtTypedElement) getMethodOrConstructor()).getType().getSimpleName();
             }
-            UMLFormSignature = getPackageName() + "." + getClassName() + "." + getName() + "(" + parameters + "):" + returnType;
+            UMLFormSignature = getPackageName() + "." + getClassName().replace("$", ".") + "." + getName() + "(" + parameters + "):" + returnType;
         }
         return UMLFormSignature;
     }

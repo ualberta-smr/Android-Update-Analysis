@@ -4,10 +4,15 @@ import ch.uzh.ifi.seal.changedistiller.model.classifiers.ChangeType;
 import ch.uzh.ifi.seal.changedistiller.model.entities.SourceCodeChange;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.util.*;
 
 
-public class ChangeDistillerHelper {
+public class ChangeDistillerHelper extends MappingDiscoverer {
+
+    public ChangeDistillerHelper() {
+        super("ChangeDistiller");
+    }
 
     public Map<MethodModel, MethodMapping> identifyMethodArgumentChanges(String projectPath,
                                                                          String projectOldPath,
@@ -15,6 +20,10 @@ public class ChangeDistillerHelper {
                                                                          Collection<MethodModel> projectOldMethods,
                                                                          Collection<MethodModel> projectNewMethods,
                                                                          Map<String, String> refactoredClassFilesMapping) {
+        onStart();
+
+        Map<String, Collection<MethodModel>> projectOldMethodByFilePath = getMappingByFilePath(projectOldMethods);
+        Map<String, MethodModel> projectNewNoReturnTypeSignatureMap = getMappingByNoReturnTypeSignature(projectNewMethods);
 
         Map<MethodModel, MethodMapping> result = new HashMap<>();
         Map<String, String> filesMapping = getClassFilesMapping(projectOldPath, projectNewPath, refactoredClassFilesMapping);
@@ -29,45 +38,107 @@ public class ChangeDistillerHelper {
                 List<SourceCodeChange> changes = distiller.getSourceCodeChanges();
                 if (changes != null) {
                     for (SourceCodeChange change : changes) {
-                        if (change.getChangeType() == ChangeType.PARAMETER_DELETE) {
-                            System.out.println("Hi.");
-                            // This is the new method for delete, insert and type change
-                            String methodUniqueName = change.getRootEntity().getUniqueName(); // no return type
-                            change.getChangedEntity().getUniqueName(); // paramName: paramType
-
-                        }
-                        MethodMapping.Type mappingType;
-                        switch (change.getChangeType()) {
-                            // PARAMETER_ORDERING_CHANGE doesn't seem to work right
-//                            case PARAMETER_ORDERING_CHANGE:
-                            case PARAMETER_RENAMING:
-//                                case METHOD_RENAMING:
+                        if (change.getChangeType().toString().toLowerCase().startsWith("parameter")) {
+                            MethodModel[] methods = fetchOriginalAndDestinationMethods(change,
+                                    oldFilePath, projectOldMethodByFilePath.get(oldFilePath), projectNewNoReturnTypeSignatureMap);
+                            MethodMapping.Type mappingType = MethodMapping.Type.ARGUMENTS_CHANGE;
+                            if (change.getChangeType() == ChangeType.PARAMETER_RENAMING ||
+                                    change.getChangeType() == ChangeType.PARAMETER_ORDERING_CHANGE) {
                                 mappingType = MethodMapping.Type.REFACTORED;
-                                break;
-                            case PARAMETER_DELETE:
-                            case PARAMETER_INSERT:
-                            case PARAMETER_TYPE_CHANGE:
-                                mappingType = MethodMapping.Type.ARGUMENTS_CHANGE;
-                                break;
-                            case ADDITIONAL_FUNCTIONALITY:
-                            case REMOVED_FUNCTIONALITY:
-                            case METHOD_RENAMING:
-                                // Method is added or removed
-                                // Renaming is already covered by RefactoringMiner
-                                continue;
-                            default:
-//                                System.err.println("Unsupported change in method found by ChangeDistiller");
-//                                System.out.println(change);
-                                continue;
+                            }
+                            if (methods != null && methods.length == 2) {
+                                result.put(methods[0], new MethodMapping(methods[1], mappingType));
+                            } else {
+                                System.out.println("Could not find a method in ChangeDistiller:");
+                                System.out.println("\tOriginal method: " + oldFilePath + ":" + change.getParentEntity().getSourceRange().toString());
+                                System.out.println("\tDestination method: " + change.getRootEntity().getUniqueName());
+                            }
                         }
-                        System.out.println(change);
+//                        switch (change.getChangeType()) {
+//                            case ADDITIONAL_FUNCTIONALITY:
+//                            case REMOVED_FUNCTIONALITY:
+//                            case METHOD_RENAMING:
+//                        }
                     }
                 }
             } catch (Exception e) {
                 System.err.println("Warning: error while change distilling. " + e.getMessage());
             }
         }
+        onFinish();
         return result;
+    }
+
+    private Map<String, MethodModel> getMappingByNoReturnTypeSignature(Collection<MethodModel> methods) {
+        Map<String, MethodModel> result = new HashMap<>();
+
+        if (methods != null) {
+            for (MethodModel method : methods) {
+                String signatureWithNoReturnType = method.getUMLFormSignature();
+                signatureWithNoReturnType = signatureWithNoReturnType.substring(0, signatureWithNoReturnType.lastIndexOf(":"));
+                result.put(signatureWithNoReturnType, method);
+            }
+        }
+
+        return result;
+    }
+
+    private Map<String, Collection<MethodModel>> getMappingByFilePath(Collection<MethodModel> methods) {
+        Map<String, Collection<MethodModel>> result = new HashMap<>();
+        if (methods != null) {
+            for (MethodModel method : methods) {
+                String filePath = method.getFilePath();
+                if (result.containsKey(filePath)) {
+                    result.get(filePath).add(method);
+                } else {
+                    Set<MethodModel> classMethods = new HashSet<>();
+                    classMethods.add(method);
+                    result.put(filePath, classMethods);
+                }
+            }
+        }
+        return result;
+    }
+
+    private MethodModel[] fetchOriginalAndDestinationMethods(SourceCodeChange change,
+                                                             String oldFilePath,
+                                                             Collection<MethodModel> oldMethods,
+                                                             Map<String, MethodModel> newMethodsBySignature) {
+        if (change.getChangeType().toString().toLowerCase().startsWith("parameter")) {
+            String destinationMethodSignature = change.getRootEntity().getUniqueName();
+            MethodModel destinationMethod = newMethodsBySignature.get(destinationMethodSignature);
+            MethodModel originalMethod =
+                    resolveMethodByFileAndCharacterRange(oldFilePath, oldMethods, change.getParentEntity().getSourceRange().getStart());
+            return new MethodModel[]{originalMethod, destinationMethod};
+        }
+        return null;
+    }
+
+    private MethodModel resolveMethodByFileAndCharacterRange(String filePath,
+                                                             Collection<MethodModel> methods,
+                                                             int rangeStart) {
+        try {
+            Scanner input = new Scanner(new File(filePath));
+            int charsRead = 0;
+            int linesRead = 0;
+            while (input.hasNextLine()) {
+                charsRead += input.nextLine().length() + 1;
+                linesRead++;
+                if (charsRead > rangeStart) {
+                    break;
+                }
+            }
+            input.close();
+
+            for (MethodModel method : methods) {
+                if (method.getLineStart() <= linesRead && method.getLineEnd() >= linesRead) {
+                    return method;
+                }
+            }
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 
     private Map<String, String> getClassFilesMapping(String projectOldPath,

@@ -5,7 +5,7 @@ import java.util.Map;
 import java.util.Scanner;
 
 
-public class SourcererHelper {
+public class SourcererHelper extends MappingDiscoverer {
 
     private static final String TOKENS_FILE_RELATIVE_PATH = "input/dataset/tokens.file";
     private static final String HEADERS_FILE_RELATIVE_PATH = "input/bookkeping/headers.file";
@@ -17,6 +17,7 @@ public class SourcererHelper {
     private File outputFile;
 
     public SourcererHelper(String sourcererccPath) {
+        super("SourcererCC");
         this.sourcererccPath = sourcererccPath;
 
         tokensFile = new File(sourcererccPath, TOKENS_FILE_RELATIVE_PATH);
@@ -46,10 +47,10 @@ public class SourcererHelper {
         String[] searchingCommand = new String[]{"java", "-jar", "dist/indexbased.SearchManager.jar", "search", "10"};
 
         long startTime = System.currentTimeMillis();
-        runSystemCommand(new File(sourcererccPath, "parser/java").getAbsolutePath(), true, tokenizingCommand);
+        runSystemCommand(new File(sourcererccPath, "parser/java").getAbsolutePath(), false, tokenizingCommand);
         runSystemCommand(sourcererccPath, false, indexingCommand);
         runSystemCommand(sourcererccPath, false, searchingCommand);
-        System.out.println("Sourcerer ran in " + (System.currentTimeMillis() - startTime) + " milliseconds");
+//        System.out.println("Sourcerer ran in " + (System.currentTimeMillis() - startTime) + " milliseconds");
 
     }
 
@@ -181,10 +182,12 @@ public class SourcererHelper {
                                                                     String projectNewPath,
                                                                     Collection<MethodModel> projectOldMethods,
                                                                     Collection<MethodModel> projectNewMethods) {
+        onStart();
         runSourcererCC(projectPath);
         Map<Integer, CodeBlock> projectOldBlocks = new HashMap<>();
         Map<Integer, CodeBlock> projectNewBlocks = new HashMap<>();
         populateBlocks(projectPath, projectOldPath, projectNewPath, projectOldBlocks, projectNewBlocks);
+        onFinish();
         return readClonePairs(projectOldMethods, projectNewMethods, projectOldBlocks, projectNewBlocks);
     }
 

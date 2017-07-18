@@ -1,4 +1,5 @@
-import java.util.*;
+import java.util.HashMap;
+import java.util.Map;
 
 public class Main {
 
@@ -55,58 +56,49 @@ public class Main {
                                                                         Map<String, MethodModel> projectNewMethodsMap,
                                                                         Map<String, String> oldClassesByQualifiedName,
                                                                         Map<String, String> newClassesByQualifiedName) {
-        Map<MethodModel, MethodMapping> mapping = new HashMap<>();
 
         // Identify identical methods
-//        SourcererHelper sourcererHelper = new SourcererHelper(SOURCERERCC_PATH);
-//        mapping.putAll(sourcererHelper.identifyIdenticalMethods(projectPath,
-//                projectOldPath,
-//                projectNewPath,
-//                projectOldMethods,
-//                projectNewMethods));
+        SourcererHelper sourcererHelper = new SourcererHelper(SOURCERERCC_PATH);
+        Map<MethodModel, MethodMapping> identicalMapping = sourcererHelper.identifyIdenticalMethods(projectPath,
+                projectOldPath,
+                projectNewPath,
+                projectOldMethodsMap.values(),
+                projectNewMethodsMap.values());
 
         // Identify refactoring changes
         Map<String, String> refactoredClassFilesMapping = new HashMap<>();
-        mapping.putAll(new RefactoringMinerHelper().identifyRefactoring(projectPath,
+        Map<MethodModel, MethodMapping> refactoringMapping = new RefactoringMinerHelper().identifyRefactoring(projectPath,
                 projectOldPath,
                 projectNewPath,
-                removeEntries(projectOldMethodsMap.values(), mapping.keySet()),
-                removeEntries(projectNewMethodsMap.values(), mappingArrayToDestMethods(mapping.values())),
+                projectOldMethodsMap.values(),
+                projectNewMethodsMap.values(),
                 oldClassesByQualifiedName,
                 newClassesByQualifiedName,
-                refactoredClassFilesMapping));
+                refactoredClassFilesMapping);
 
         // Identify argument changes
         ChangeDistillerHelper changeDistillerHelper = new ChangeDistillerHelper();
-        mapping.putAll(changeDistillerHelper.identifyMethodArgumentChanges(projectPath,
+        Map<MethodModel, MethodMapping> changeDistillerMapping = changeDistillerHelper.identifyMethodArgumentChanges(projectPath,
                 projectOldPath,
                 projectNewPath,
-                removeEntries(projectOldMethodsMap.values(), mapping.keySet()),
-                removeEntries(projectNewMethodsMap.values(), mappingArrayToDestMethods(mapping.values())),
-                refactoredClassFilesMapping));
+                projectOldMethodsMap.values(),
+                projectNewMethodsMap.values(),
+                refactoredClassFilesMapping);
 
         // Identify body changes
 
 
-        return mapping;
+        return combineMappings(identicalMapping, refactoringMapping, changeDistillerMapping);
     }
 
-    private static Collection<MethodModel> mappingArrayToDestMethods(Collection<MethodMapping> mappings) {
-        Set<MethodModel> result = new HashSet<>();
+    private static <K, V> Map<K, V> combineMappings(Map<K, V>... mappings) {
+        Map<K, V> result = new HashMap<>();
 
-        for (MethodMapping mapping : mappings) {
-            result.add(mapping.getDestionationMethod());
-        }
-
-        return result;
-    }
-
-    private static <T> Collection<T> removeEntries(Collection<T> originalCollection, Collection<T> itemsToRemove) {
-        Collection<T> result = new HashSet<>();
-
-        for (T entry : originalCollection) {
-            if (!itemsToRemove.contains(entry)) {
-                result.add(entry);
+        for (Map<K, V> mapping : mappings) {
+            for (K key : mapping.keySet()) {
+                if (!result.containsKey(key)) {
+                    result.put(key, mapping.get(key));
+                }
             }
         }
 
