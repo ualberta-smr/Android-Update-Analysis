@@ -9,7 +9,11 @@ import java.io.File;
 import java.util.*;
 
 
-public class RefactoringMinerHelper {
+public class RefactoringMinerHelper extends MappingDiscoverer{
+
+    public RefactoringMinerHelper(){
+        super("RefactoringMiner");
+    }
 
     public Map<MethodModel, MethodMapping> identifyRefactoring(String projectPath,
                                                                String projectOldPath,
@@ -19,10 +23,13 @@ public class RefactoringMinerHelper {
                                                                Map<String, String> oldClassesByQualifiedName,
                                                                Map<String, String> newClassesByQualifiedName,
                                                                Map<String, String> refactoredClassFilesMapping) {
+        onStart();
 
         Map<String, MethodModel> projectOldUniqueSignatureMap = getMappingBySignature(projectOldMethods);
         Map<String, MethodModel> projectNewUniqueSignatureMap = getMappingBySignature(projectNewMethods);
 
+        Map<String, String> oldClassesByQualifiedNameFixed = convertDollarSignToDot(oldClassesByQualifiedName);
+        Map<String, String> newClassesByQualifiedNameFixed = convertDollarSignToDot(newClassesByQualifiedName);
 
         List<Refactoring> refactorings = getRefactorings(projectOldPath, projectNewPath);
         Map<MethodModel, MethodMapping> result = new HashMap<>();
@@ -42,17 +49,17 @@ public class RefactoringMinerHelper {
                     MethodModel newMethod = projectNewUniqueSignatureMap.get(generateUniqueSignature(destMethodUML));
                     result.put(oldMethod, new MethodMapping(newMethod, MethodMapping.Type.REFACTORED));
                 } else {
-                    System.out.println("Could not find a method:");
+                    System.out.println("Could not find a method in RefactoringMiner:");
                     System.out.println("\tOriginal method: " + generateUniqueSignature(originalMethodUML));
                     System.out.println("\tDestination method: " + generateUniqueSignature(destMethodUML));
                 }
                 // There is another type: MOVE_RENAME_CLASS. Didn't find the corresponding class
             } else if (refactoring instanceof MoveClassRefactoring || refactoring instanceof RenameClassRefactoring) {
                 String[] classes = fetchOriginalAndDestinationClasses(refactoring);
-                if (oldClassesByQualifiedName.containsKey(classes[0]) && newClassesByQualifiedName.containsKey(classes[1])) {
-                    refactoredClassFilesMapping.put(oldClassesByQualifiedName.get(classes[0]), oldClassesByQualifiedName.get(classes[1]));
+                if (oldClassesByQualifiedNameFixed.containsKey(classes[0]) && newClassesByQualifiedNameFixed.containsKey(classes[1])) {
+                    refactoredClassFilesMapping.put(oldClassesByQualifiedNameFixed.get(classes[0]), newClassesByQualifiedNameFixed.get(classes[1]));
                 } else {
-                    System.out.println("Could not find a class:");
+                    System.out.println("Could not find a class in RefactoringMiner:");
                     System.out.println("\tOriginal class: " + classes[0]);
                     System.out.println("\tDestination class: " + classes[1]);
                 }
@@ -62,8 +69,8 @@ public class RefactoringMinerHelper {
                 Collection<String> newClasses = ((ExtractSuperclassRefactoring) refactoring).getSubclassSet();
                 if (newClasses != null) {
                     for (String newClass : newClasses) {
-                        if (oldClassesByQualifiedName.containsKey(originalClass) && newClassesByQualifiedName.containsKey(newClass)) {
-                            refactoredClassFilesMapping.put(oldClassesByQualifiedName.get(originalClass), oldClassesByQualifiedName.get(newClass));
+                        if (oldClassesByQualifiedNameFixed.containsKey(originalClass) && newClassesByQualifiedNameFixed.containsKey(newClass)) {
+                            refactoredClassFilesMapping.put(oldClassesByQualifiedNameFixed.get(originalClass), newClassesByQualifiedNameFixed.get(newClass));
                         } else {
                             System.out.println("Could not find a class:");
                             System.out.println("\tOriginal class: " + originalClass);
@@ -71,6 +78,17 @@ public class RefactoringMinerHelper {
                         }
                     }
                 }
+            }
+        }
+        onFinish();
+        return result;
+    }
+
+    private <T> Map<String, T> convertDollarSignToDot(Map<String, T> map) {
+        Map<String, T> result = new HashMap<>();
+        if (map != null) {
+            for (String key : map.keySet()) {
+                result.put(key.replace("$", "."), map.get(key));
             }
         }
         return result;
@@ -89,11 +107,9 @@ public class RefactoringMinerHelper {
             ops[0] = ((InlineOperationRefactoring) refactoring).getInlinedOperation();
             ops[1] = ((InlineOperationRefactoring) refactoring).getInlinedToOperation();
         } else if (refactoring instanceof ExtractOperationRefactoring) {
-            // TODO Not sure if this is correct
-            ops[1] = ((ExtractOperationRefactoring) refactoring).getExtractedFromOperation();
-            ops[0] = ((ExtractOperationRefactoring) refactoring).getExtractedOperation();
+            ops[0] = ((ExtractOperationRefactoring) refactoring).getExtractedFromOperation();
+            ops[1] = ((ExtractOperationRefactoring) refactoring).getExtractedOperation();
         } else if (refactoring instanceof ExtractAndMoveOperationRefactoring) {
-            // TODO Not sure if this is correct
             ops[0] = ((ExtractAndMoveOperationRefactoring) refactoring).getExtractedFromOperation();
             ops[1] = ((ExtractAndMoveOperationRefactoring) refactoring).getExtractedOperation();
         } else {
