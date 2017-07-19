@@ -1,3 +1,8 @@
+package ca.ualberta.mehran.androidevolution.mapping.discovery.implementation;
+
+import ca.ualberta.mehran.androidevolution.mapping.MethodMapping;
+import ca.ualberta.mehran.androidevolution.mapping.MethodModel;
+import ca.ualberta.mehran.androidevolution.mapping.discovery.MappingDiscoverer;
 import gr.uom.java.xmi.UMLModel;
 import gr.uom.java.xmi.UMLModelASTReader;
 import gr.uom.java.xmi.UMLOperation;
@@ -9,17 +14,18 @@ import java.io.File;
 import java.util.*;
 
 
-public class RefactoringMinerHelper extends MappingDiscoverer{
+public class RefactoringMinerHelper extends MappingDiscoverer {
 
-    public RefactoringMinerHelper(){
+    public RefactoringMinerHelper() {
         super("RefactoringMiner");
     }
 
-    public Map<MethodModel, MethodMapping> identifyRefactoring(String projectPath,
-                                                               String projectOldPath,
+    public Map<MethodModel, MethodMapping> identifyRefactoring(String projectOldPath,
                                                                String projectNewPath,
                                                                Collection<MethodModel> projectOldMethods,
                                                                Collection<MethodModel> projectNewMethods,
+                                                               Collection<MethodModel> projectOldDiscoveredMethods,
+                                                               Collection<MethodModel> projectNewDiscoveredMethods,
                                                                Map<String, String> oldClassesByQualifiedName,
                                                                Map<String, String> newClassesByQualifiedName,
                                                                Map<String, String> refactoredClassFilesMapping) {
@@ -47,7 +53,9 @@ public class RefactoringMinerHelper extends MappingDiscoverer{
                         projectNewUniqueSignatureMap.containsKey(generateUniqueSignature(destMethodUML))) {
                     MethodModel oldMethod = projectOldUniqueSignatureMap.get(generateUniqueSignature(originalMethodUML));
                     MethodModel newMethod = projectNewUniqueSignatureMap.get(generateUniqueSignature(destMethodUML));
-                    result.put(oldMethod, new MethodMapping(newMethod, MethodMapping.Type.REFACTORED));
+                    if (!projectOldDiscoveredMethods.contains(oldMethod) && !projectNewDiscoveredMethods.contains(newMethod)) {
+                        result.put(oldMethod, new MethodMapping(newMethod, MethodMapping.Type.REFACTORED));
+                    }
                 } else {
                     System.out.println("Could not find a method in RefactoringMiner:");
                     System.out.println("\tOriginal method: " + generateUniqueSignature(originalMethodUML));

@@ -1,3 +1,5 @@
+package ca.ualberta.mehran.androidevolution.mapping;
+
 import spoon.reflect.declaration.*;
 import spoon.support.reflect.declaration.CtTypeImpl;
 
@@ -52,6 +54,10 @@ public class MethodModel<T> {
 
     public String getClassName() {
         return className;
+    }
+
+    public String getFullClassName() {
+        return getPackageName() + "." + getClassName();
     }
 
     public int getLineStart() {
@@ -162,5 +168,4 @@ public class MethodModel<T> {
         }
         return KNGFormSignature;
     }
-
 }
