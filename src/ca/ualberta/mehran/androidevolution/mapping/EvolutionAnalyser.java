@@ -14,31 +14,22 @@ import java.util.*;
 
 public class EvolutionAnalyser {
 
-    private static String SOURCERERCC_PATH = "/Users/mehran/Android API/SourcererCC";
+    private String mSourcererCCPath = "/Users/mehran/Android API/SourcererCC";
+
 
     public static void main(String[] args) {
 
-//        String subsystemName = "contacts_a6_a7_cm13";
-//
-//        String pathAndroidOldAndNew = "/Users/mehran/Library/Mobile Documents/com~apple~CloudDocs/Android API/Contacts/android6.0_android7.0";
-//        String pathAndroidOldAndNew_old = "/Users/mehran/Library/Mobile Documents/com~apple~CloudDocs/Android API/Contacts/android6.0_android7.0/1.0.0";
-//        String pathAndroidOldAndNew_new = "/Users/mehran/Library/Mobile Documents/com~apple~CloudDocs/Android API/Contacts/android6.0_android7.0/2.0.0";
-//
-//        String pathAndroidOldAndModified = "/Users/mehran/Library/Mobile Documents/com~apple~CloudDocs/Android API/Contacts/android6.0_cm13.0";
-//        String pathAndroidOldAndModified_old = "/Users/mehran/Library/Mobile Documents/com~apple~CloudDocs/Android API/Contacts/android6.0_cm13.0/1.0.0";
-//        String pathAndroidOldAndModified_new = "/Users/mehran/Library/Mobile Documents/com~apple~CloudDocs/Android API/Contacts/android6.0_cm13.0/2.0.0";
+        String subsystemName = "contacts_a6_a7_cm13";
 
+        String pathAndroidOldAndNew = "/Users/mehran/Library/Mobile Documents/com~apple~CloudDocs/Android API/Contacts/android6.0_android7.0";
+        String pathAndroidOldAndNew_old = "/Users/mehran/Library/Mobile Documents/com~apple~CloudDocs/Android API/Contacts/android6.0_android7.0/1.0.0";
+        String pathAndroidOldAndNew_new = "/Users/mehran/Library/Mobile Documents/com~apple~CloudDocs/Android API/Contacts/android6.0_android7.0/2.0.0";
 
-        String subsystemName = "contacts-android-4.0.1_r1-android-4.2_r1-cm-10.0";
+        String pathAndroidOldAndModified = "/Users/mehran/Library/Mobile Documents/com~apple~CloudDocs/Android API/Contacts/android6.0_cm13.0";
+        String pathAndroidOldAndModified_old = "/Users/mehran/Library/Mobile Documents/com~apple~CloudDocs/Android API/Contacts/android6.0_cm13.0/1.0.0";
+        String pathAndroidOldAndModified_new = "/Users/mehran/Library/Mobile Documents/com~apple~CloudDocs/Android API/Contacts/android6.0_cm13.0/2.0.0";
 
-        String pathAndroidOldAndNew = "/Users/mehran/IdeaProjects/Android Evolution/contacts/android-4.0.1_r1-android-4.2_r1";
-        String pathAndroidOldAndNew_old = "/Users/mehran/IdeaProjects/Android Evolution/contacts/android-4.0.1_r1-android-4.2_r1/old";
-        String pathAndroidOldAndNew_new = "/Users/mehran/IdeaProjects/Android Evolution/contacts/android-4.0.1_r1-android-4.2_r1/new";
-
-        String pathAndroidOldAndModified = "/Users/mehran/IdeaProjects/Android Evolution/contacts/android-4.0.1_r1-cm-10.0";
-        String pathAndroidOldAndModified_old = "/Users/mehran/IdeaProjects/Android Evolution/contacts/android-4.0.1_r1-cm-10.0/old";
-        String pathAndroidOldAndModified_new = "/Users/mehran/IdeaProjects/Android Evolution/contacts/android-4.0.1_r1-cm-10.0/new";
-
+        String sourcererCCPath = "/Users/mehran/Android API/SourcererCC";
         if (args.length == 8) {
             subsystemName = args[0];
             pathAndroidOldAndNew = args[1];
@@ -47,11 +38,11 @@ public class EvolutionAnalyser {
             pathAndroidOldAndModified = args[4];
             pathAndroidOldAndModified_old = args[5];
             pathAndroidOldAndModified_new = args[6];
-            SOURCERERCC_PATH = args[7];
+            sourcererCCPath = args[7];
         }
 
         new EvolutionAnalyser().run(subsystemName, pathAndroidOldAndNew, pathAndroidOldAndNew_old, pathAndroidOldAndNew_new,
-                pathAndroidOldAndModified, pathAndroidOldAndModified_old, pathAndroidOldAndModified_new);
+                pathAndroidOldAndModified, pathAndroidOldAndModified_old, pathAndroidOldAndModified_new, sourcererCCPath);
     }
 
     public void run(String subsystemName,
@@ -60,7 +51,10 @@ public class EvolutionAnalyser {
                     String pathAndroidOldAndNew_new,
                     String pathAndroidOldAndModified,
                     String pathAndroidOldAndModified_old,
-                    String pathAndroidOldAndModified_new) {
+                    String pathAndroidOldAndModified_new,
+                    String sourcererCCPath) {
+        mSourcererCCPath = sourcererCCPath;
+
         Map<String, MethodMapping> mappingAndroidOldNew = new HashMap<>();
         Map<String, MethodMapping> mappingAndroidOldModified = new HashMap<>();
         Collection<String> projectOldMethods = new HashSet<>();
@@ -245,7 +239,7 @@ public class EvolutionAnalyser {
         Map<MethodModel, MethodMapping> mapping = new HashMap<>();
 
         // Identify identical methods
-        SourcererHelper sourcererHelper = new SourcererHelper(SOURCERERCC_PATH);
+        SourcererHelper sourcererHelper = new SourcererHelper(mSourcererCCPath);
         Map<MethodModel, MethodMapping> identicalMapping = sourcererHelper.identifyIdenticalMethods(projectPath,
                 projectOldPath,
                 projectNewPath,

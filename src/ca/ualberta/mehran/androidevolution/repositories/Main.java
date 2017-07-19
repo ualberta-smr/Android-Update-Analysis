@@ -14,14 +14,23 @@ import static ca.ualberta.mehran.androidevolution.Utils.runSystemCommand;
 public class Main {
 
 
+    private static final String SOURCERERCC_PATH = "/Users/mehran/Android API/SourcererCC";
+
     private static final String VERSIONS_FILE = "versions.csv";
     private static final String SUBSYSTEMS_FILE = "subsystems.csv";
 
     public static void main(String[] args) {
-        new Main().run();
+
+        String sourcererCCPath = SOURCERERCC_PATH;
+
+        if (args != null && args.length > 0) {
+            sourcererCCPath = args[0];
+        }
+
+        new Main().run(sourcererCCPath);
     }
 
-    public void run() {
+    public void run(String sourcererCCPath) {
         String[] versions = readFile(VERSIONS_FILE);
         SubSystem[] subsystems = getSubsystems(SUBSYSTEMS_FILE);
 
@@ -76,7 +85,7 @@ public class Main {
                 String analysisName = subsystem.name + "-" + androidBaseVersion + "-" + androidNewVersion + "-" + CMVersion;
                 try {
                     evolutionAnalyser.run(analysisName, androidOldNew.getPath(), androidOldNew.getOldVersionPath(), androidOldNew.getNewVersionPath(),
-                            androidOldCM.getPath(), androidOldCM.getOldVersionPath(), androidOldCM.getNewVersionPath());
+                            androidOldCM.getPath(), androidOldCM.getOldVersionPath(), androidOldCM.getNewVersionPath(), sourcererCCPath);
                 } catch (Throwable e) {
                     e.printStackTrace();
                 }
