@@ -1,3 +1,5 @@
+package ca.ualberta.mehran.androidevolution.mapping;
+
 public class MethodMapping {
 
     private MethodModel destionationMethod;
@@ -24,7 +26,7 @@ public class MethodMapping {
      * KNG_TRANSFORMATIONS: Matches discovered by Kim Miryung's tool.
      */
     public enum Type {
-        IDENTICAL, REFACTORED, ARGUMENTS_CHANGE, BODY_CHANGE_ONLY, KNG_TRANSFORMATIONS
+        IDENTICAL, REFACTORED, ARGUMENTS_CHANGE, BODY_CHANGE_ONLY, NOT_FOUND, KNG_TRANSFORMATIONS
     }
 
 }

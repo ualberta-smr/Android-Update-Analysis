@@ -1,3 +1,7 @@
+package ca.ualberta.mehran.androidevolution.mapping.discovery;
+
+import ca.ualberta.mehran.androidevolution.mapping.MethodModel;
+import ca.ualberta.mehran.androidevolution.mapping.discovery.MappingDiscoverer;
 import spoon.Launcher;
 import spoon.reflect.cu.position.NoSourcePosition;
 import spoon.reflect.declaration.CtConstructor;
@@ -8,18 +12,10 @@ import spoon.support.reflect.declaration.CtClassImpl;
 
 import java.util.*;
 
-public class SpoonHelper {
+public class SpoonHelper extends MappingDiscoverer {
 
-    private static SpoonHelper mInstance;
-
-    private SpoonHelper() {
-    }
-
-    public static SpoonHelper getInstance() {
-        if (mInstance == null) {
-            mInstance = new SpoonHelper();
-        }
-        return mInstance;
+    public SpoonHelper() {
+        super("Spoon");
     }
 
 
@@ -36,16 +32,19 @@ public class SpoonHelper {
 
 
     public List<MethodModel> extractAllMethods(String path, Map<String, String> classNameToFileMapping) {
+        onStart();
         List<MethodModel> methods = new ArrayList<>();
 
         Launcher spoon = new Launcher();
         spoon.addInputResource(path);
+        spoon.getEnvironment().setNoClasspath(true);
         Factory factory = spoon.getFactory();
         factory.getEnvironment().setNoClasspath(true);
         spoon.getModelBuilder().build();
         for (CtType<?> s : factory.Class().getAll()) {
             methods.addAll(extractAllMethodsFromClass(s, classNameToFileMapping));
         }
+        onFinish();
         return methods;
     }
 
@@ -63,16 +62,16 @@ public class SpoonHelper {
                 MethodModel model = new MethodModel(cons);
                 result.add(model);
             }
-        }
-        for (CtMethod<?> m : cls.getMethods()) {
-            if (m.getPosition() instanceof NoSourcePosition) continue;
-            MethodModel model = new MethodModel(m);
-            result.add(model);
-        }
-        for (CtType<?> s : cls.getNestedTypes()) {
-            result.addAll(extractAllMethodsFromClass(s, classNameToFileMapping));
-        }
 
+            for (CtMethod<?> m : cls.getMethods()) {
+                if (m.getPosition() instanceof NoSourcePosition) continue;
+                MethodModel model = new MethodModel(m);
+                result.add(model);
+            }
+            for (CtType<?> s : cls.getNestedTypes()) {
+                result.addAll(extractAllMethodsFromClass(s, classNameToFileMapping));
+            }
+        }
         return result;
     }
 

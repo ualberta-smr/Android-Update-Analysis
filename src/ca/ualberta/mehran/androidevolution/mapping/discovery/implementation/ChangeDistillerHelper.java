@@ -1,10 +1,14 @@
+package ca.ualberta.mehran.androidevolution.mapping.discovery.implementation;
+
+import ca.ualberta.mehran.androidevolution.mapping.MethodMapping;
+import ca.ualberta.mehran.androidevolution.mapping.MethodModel;
+import ca.ualberta.mehran.androidevolution.mapping.discovery.MappingDiscoverer;
 import ch.uzh.ifi.seal.changedistiller.ChangeDistiller;
 import ch.uzh.ifi.seal.changedistiller.distilling.FileDistiller;
 import ch.uzh.ifi.seal.changedistiller.model.classifiers.ChangeType;
 import ch.uzh.ifi.seal.changedistiller.model.entities.SourceCodeChange;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.util.*;
 
 
@@ -14,11 +18,12 @@ public class ChangeDistillerHelper extends MappingDiscoverer {
         super("ChangeDistiller");
     }
 
-    public Map<MethodModel, MethodMapping> identifyMethodArgumentChanges(String projectPath,
-                                                                         String projectOldPath,
+    public Map<MethodModel, MethodMapping> identifyMethodArgumentChanges(String projectOldPath,
                                                                          String projectNewPath,
                                                                          Collection<MethodModel> projectOldMethods,
                                                                          Collection<MethodModel> projectNewMethods,
+                                                                         Collection<MethodModel> projectOldDiscoveredMethods,
+                                                                         Collection<MethodModel> projectNewDiscoveredMethods,
                                                                          Map<String, String> refactoredClassFilesMapping) {
         onStart();
 
@@ -38,7 +43,8 @@ public class ChangeDistillerHelper extends MappingDiscoverer {
                 List<SourceCodeChange> changes = distiller.getSourceCodeChanges();
                 if (changes != null) {
                     for (SourceCodeChange change : changes) {
-                        if (change.getChangeType().toString().toLowerCase().startsWith("parameter")) {
+                        if (change.getChangeType().toString().toLowerCase().startsWith("parameter") &&
+                                projectOldMethodByFilePath.containsKey(oldFilePath)) {
                             MethodModel[] methods = fetchOriginalAndDestinationMethods(change,
                                     oldFilePath, projectOldMethodByFilePath.get(oldFilePath), projectNewNoReturnTypeSignatureMap);
                             MethodMapping.Type mappingType = MethodMapping.Type.ARGUMENTS_CHANGE;
@@ -47,7 +53,11 @@ public class ChangeDistillerHelper extends MappingDiscoverer {
                                 mappingType = MethodMapping.Type.REFACTORED;
                             }
                             if (methods != null && methods.length == 2) {
-                                result.put(methods[0], new MethodMapping(methods[1], mappingType));
+                                MethodModel oldMethod = methods[0];
+                                MethodModel newMethod = methods[1];
+                                if (!projectOldDiscoveredMethods.contains(oldMethod) && !projectNewDiscoveredMethods.contains(newMethod)) {
+                                    result.put(oldMethod, new MethodMapping(newMethod, mappingType));
+                                }
                             } else {
                                 System.out.println("Could not find a method in ChangeDistiller:");
                                 System.out.println("\tOriginal method: " + oldFilePath + ":" + change.getParentEntity().getSourceRange().toString());
@@ -63,6 +73,7 @@ public class ChangeDistillerHelper extends MappingDiscoverer {
                 }
             } catch (Exception e) {
                 System.err.println("Warning: error while change distilling. " + e.getMessage());
+                e.printStackTrace();
             }
         }
         onFinish();
@@ -109,7 +120,9 @@ public class ChangeDistillerHelper extends MappingDiscoverer {
             MethodModel destinationMethod = newMethodsBySignature.get(destinationMethodSignature);
             MethodModel originalMethod =
                     resolveMethodByFileAndCharacterRange(oldFilePath, oldMethods, change.getParentEntity().getSourceRange().getStart());
-            return new MethodModel[]{originalMethod, destinationMethod};
+            if (destinationMethod != null && originalMethod != null) {
+                return new MethodModel[]{originalMethod, destinationMethod};
+            }
         }
         return null;
     }
@@ -135,7 +148,7 @@ public class ChangeDistillerHelper extends MappingDiscoverer {
                     return method;
                 }
             }
-        } catch (FileNotFoundException e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
         return null;

@@ -1,3 +1,10 @@
+package ca.ualberta.mehran.androidevolution.mapping.discovery.implementation;
+
+import ca.ualberta.mehran.androidevolution.Utils;
+import ca.ualberta.mehran.androidevolution.mapping.MethodMapping;
+import ca.ualberta.mehran.androidevolution.mapping.MethodModel;
+import ca.ualberta.mehran.androidevolution.mapping.discovery.MappingDiscoverer;
+
 import java.io.*;
 import java.util.Collection;
 import java.util.HashMap;
@@ -47,41 +54,11 @@ public class SourcererHelper extends MappingDiscoverer {
         String[] searchingCommand = new String[]{"java", "-jar", "dist/indexbased.SearchManager.jar", "search", "10"};
 
         long startTime = System.currentTimeMillis();
-        runSystemCommand(new File(sourcererccPath, "parser/java").getAbsolutePath(), false, tokenizingCommand);
-        runSystemCommand(sourcererccPath, false, indexingCommand);
-        runSystemCommand(sourcererccPath, false, searchingCommand);
+        Utils.runSystemCommand(new File(sourcererccPath, "parser/java").getAbsolutePath(), false, tokenizingCommand);
+        Utils.runSystemCommand(sourcererccPath, false, indexingCommand);
+        Utils.runSystemCommand(sourcererccPath, false, searchingCommand);
 //        System.out.println("Sourcerer ran in " + (System.currentTimeMillis() - startTime) + " milliseconds");
 
-    }
-
-    private void runSystemCommand(String dir, boolean verbose, String... commands) {
-        try {
-            if (verbose) {
-                for (String command : commands) {
-                    System.out.print(command + " ");
-                }
-                System.out.println();
-            }
-            Runtime rt = Runtime.getRuntime();
-            Process proc = rt.exec(commands, null, new File(dir));
-
-            BufferedReader stdInput = new BufferedReader(new
-                    InputStreamReader(proc.getInputStream()));
-
-            BufferedReader stdError = new BufferedReader(new
-                    InputStreamReader(proc.getErrorStream()));
-
-            String s = null;
-            while ((s = stdInput.readLine()) != null) {
-                if (verbose) System.out.println(s);
-            }
-
-            while ((s = stdError.readLine()) != null) {
-                System.out.println(s);
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
     }
 
     private void populateBlocks(String projectBothPath,
@@ -141,13 +118,15 @@ public class SourcererHelper extends MappingDiscoverer {
                 CodeBlock leftCodeBlock = projectOldBlocks.get(leftBlockId);
                 CodeBlock rightCodeBlock = projectNewBlocks.get(rightBlockId);
                 if (leftCodeBlock != null && rightCodeBlock != null) {
-                    if (projectOldMethodsMapByFile.containsKey(generateUniqueKey(leftCodeBlock)) &&
-                            projectNewMethodsMapByFile.containsKey(generateUniqueKey(rightCodeBlock))) {
-                        MethodModel oldMethod = projectOldMethodsMapByFile.get(generateUniqueKey(leftCodeBlock));
-                        MethodModel newMethod = projectNewMethodsMapByFile.get(generateUniqueKey(rightCodeBlock));
-                        MethodMapping mappingInstance = new MethodMapping(
-                                newMethod, MethodMapping.Type.IDENTICAL);
-                        mapping.put(oldMethod, mappingInstance);
+                    if (leftCodeBlock.relativePath.equals(rightCodeBlock.relativePath)) {
+                        if (projectOldMethodsMapByFile.containsKey(generateUniqueKey(leftCodeBlock)) &&
+                                projectNewMethodsMapByFile.containsKey(generateUniqueKey(rightCodeBlock))) {
+                            MethodModel oldMethod = projectOldMethodsMapByFile.get(generateUniqueKey(leftCodeBlock));
+                            MethodModel newMethod = projectNewMethodsMapByFile.get(generateUniqueKey(rightCodeBlock));
+                            MethodMapping mappingInstance = new MethodMapping(
+                                    newMethod, MethodMapping.Type.IDENTICAL);
+                            mapping.put(oldMethod, mappingInstance);
+                        }
                     }
                 }
 
