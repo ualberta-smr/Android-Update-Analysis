@@ -3,6 +3,8 @@ package ca.ualberta.mehran.androidevolution.mapping.discovery;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
+import static ca.ualberta.mehran.androidevolution.Utils.log;
+
 /**
  * Created by mehran on 7/17/17.
  */
@@ -25,8 +27,4 @@ public abstract class MappingDiscoverer {
         log(helperName + " took " + (totalTime/1000) + " seconds");
     }
 
-    private void log(String message){
-        String timeStamp = new SimpleDateFormat("MM/dd/yyyy HH:mm:ss z").format(new Date());
-        System.out.println(timeStamp + " " + message);
-    }
 }

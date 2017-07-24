@@ -181,12 +181,20 @@ public class RefactoringMinerHelper extends MappingDiscoverer {
     private String generateUniqueSignature(UMLOperation method) {
         String parameters = "";
         for (UMLType paramType : method.getParameterTypeList()) {
-            parameters += paramType.toString() + ",";
+            parameters += paramType.toString().replaceAll("<.*>", "") + ",";
         }
         if (!parameters.equals("")) {
             parameters = parameters.substring(0, parameters.length() - 1);
         }
-        return method.getClassName() + "." + method.getName() + "(" + parameters + "):" + method.getReturnParameter().getType().toString();
+        String returnType = "void";
+        try {
+            returnType = method.getReturnParameter().getType().toString();
+            if (returnType.contains("<")) {
+                returnType = returnType.replaceAll("<.*>", "");
+            }
+        } catch (NullPointerException e) {
+        }
+        return method.getClassName() + "." + method.getName() + "(" + parameters + "):" + returnType;
     }
 
 }

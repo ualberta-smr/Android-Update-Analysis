@@ -28,7 +28,7 @@ public class ChangeDistillerHelper extends MappingDiscoverer {
         onStart();
 
         Map<String, Collection<MethodModel>> projectOldMethodByFilePath = getMappingByFilePath(projectOldMethods);
-        Map<String, MethodModel> projectNewNoReturnTypeSignatureMap = getMappingByNoReturnTypeSignature(projectNewMethods);
+        Map<String, MethodModel> projectNewNoReturnTypeSignatureMap = getMappingByChangeDistillerStyle(projectNewMethods);
 
         Map<MethodModel, MethodMapping> result = new HashMap<>();
         Map<String, String> filesMapping = getClassFilesMapping(projectOldPath, projectNewPath, refactoredClassFilesMapping);
@@ -80,13 +80,16 @@ public class ChangeDistillerHelper extends MappingDiscoverer {
         return result;
     }
 
-    private Map<String, MethodModel> getMappingByNoReturnTypeSignature(Collection<MethodModel> methods) {
+    private Map<String, MethodModel> getMappingByChangeDistillerStyle(Collection<MethodModel> methods) {
         Map<String, MethodModel> result = new HashMap<>();
 
         if (methods != null) {
             for (MethodModel method : methods) {
                 String signatureWithNoReturnType = method.getUMLFormSignature();
+                // Remove return type
                 signatureWithNoReturnType = signatureWithNoReturnType.substring(0, signatureWithNoReturnType.lastIndexOf(":"));
+                // Replace <init> with class name for constructors
+//                signatureWithNoReturnType = signatureWithNoReturnType.replace("<init>", method.getSimpleClassName());
                 result.put(signatureWithNoReturnType, method);
             }
         }
@@ -117,14 +120,65 @@ public class ChangeDistillerHelper extends MappingDiscoverer {
                                                              Map<String, MethodModel> newMethodsBySignature) {
         if (change.getChangeType().toString().toLowerCase().startsWith("parameter")) {
             String destinationMethodSignature = change.getRootEntity().getUniqueName();
+            // Remove generics
+            destinationMethodSignature = removeGenericsAndParents(destinationMethodSignature);
             MethodModel destinationMethod = newMethodsBySignature.get(destinationMethodSignature);
-            MethodModel originalMethod =
-                    resolveMethodByFileAndCharacterRange(oldFilePath, oldMethods, change.getParentEntity().getSourceRange().getStart());
+//            MethodModel originalMethod =
+//                    resolveMethodByFileAndCharacterRange(oldFilePath, oldMethods, change.getParentEntity().getSourceRange().getStart());
+            MethodModel originalMethod = resolveOriginalMethod(change, oldMethods, destinationMethod);
             if (destinationMethod != null && originalMethod != null) {
                 return new MethodModel[]{originalMethod, destinationMethod};
             }
         }
         return null;
+    }
+
+
+    private MethodModel resolveOriginalMethod(SourceCodeChange change, Collection<MethodModel> oldMethods, MethodModel newMethod) {
+        if (newMethod == null || oldMethods == null) return null;
+        List<MethodModel> candidateMethods = new ArrayList<>();
+        for (MethodModel oldMethod : oldMethods) {
+            if (oldMethod.getName().equals(newMethod.getName())) {
+                candidateMethods.add(oldMethod);
+            }
+        }
+        if (candidateMethods.size() == 1) {
+            return candidateMethods.get(0);
+        }
+        if (candidateMethods.size() > 1) {
+            if (change.getChangeType() == ChangeType.PARAMETER_INSERT) {
+                for (MethodModel candidateMethod : candidateMethods) {
+                    if (newMethod.getUMLFormSignature().length() > candidateMethod.getUMLFormSignature().length()) {
+                        return candidateMethod;
+                    }
+                }
+                return candidateMethods.get(0);
+            }
+            if (change.getChangeType() == ChangeType.PARAMETER_DELETE) {
+                for (MethodModel candidateMethod : candidateMethods) {
+                    if (newMethod.getUMLFormSignature().length() < candidateMethod.getUMLFormSignature().length()) {
+                        return candidateMethod;
+                    }
+                }
+                return candidateMethods.get(0);
+            }
+            return candidateMethods.get(0);
+        }
+        return null;
+    }
+
+    private String removeGenericsAndParents(String methodSignature) {
+//        if (!methodSignature.contains("<")) return methodSignature;
+        StringBuilder newParams = new StringBuilder();
+        String params[] = methodSignature.substring(methodSignature.indexOf("(") + 1, methodSignature.lastIndexOf(")")).split(",");
+        for (int i = 0; i < params.length; i++) {
+            String newParam = params[i].replaceAll("<.*>", "");
+            if (newParam.contains(".")) newParam = newParam.substring(newParam.lastIndexOf(".") + 1);
+            newParams.append(newParam);
+            if (i < params.length - 1) newParams.append(",");
+        }
+        String newSignature = methodSignature.substring(0, methodSignature.indexOf("(") + 1) + newParams.toString() + ")";
+        return newSignature;
     }
 
     private MethodModel resolveMethodByFileAndCharacterRange(String filePath,
