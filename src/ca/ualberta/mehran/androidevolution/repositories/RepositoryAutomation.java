@@ -9,9 +9,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
 
+import static ca.ualberta.mehran.androidevolution.Utils.log;
 import static ca.ualberta.mehran.androidevolution.Utils.runSystemCommand;
 
-public class Main {
+public class RepositoryAutomation {
 
 
     private static final String SOURCERERCC_PATH = "/Users/mehran/Android API/SourcererCC";
@@ -27,12 +28,12 @@ public class Main {
             sourcererCCPath = args[0];
         }
 
-        new Main().run(sourcererCCPath);
+        new RepositoryAutomation().run(sourcererCCPath);
     }
 
     public void run(String sourcererCCPath) {
         String[] versions = readFile(VERSIONS_FILE);
-        SubSystem[] subsystems = getSubsystems(SUBSYSTEMS_FILE);
+        List<SubSystem> subsystems = getSubsystems(SUBSYSTEMS_FILE);
 
         EvolutionAnalyser evolutionAnalyser = new EvolutionAnalyser();
 
@@ -54,35 +55,37 @@ public class Main {
                 String androidNewVersion = versions[i + 1].split(",")[0];
                 String CMVersion = versions[i].split(",")[1];
 
+                String analysisName = subsystem.name + "_" + androidBaseVersion + "_" + androidNewVersion + "_" + CMVersion;
+                log("Doing " + analysisName);
+
                 ComparisionFolder androidOldNew = new ComparisionFolder(subsystemDir.getAbsolutePath(), androidBaseVersion, androidNewVersion);
                 ComparisionFolder androidOldCM = new ComparisionFolder(subsystemDir.getAbsolutePath(), androidBaseVersion, CMVersion);
 
-                gitChangeBranch(androidRawFolder.getAbsolutePath(), androidBaseVersion);
+                if (!gitChangeBranch(androidRawFolder.getAbsolutePath(), androidBaseVersion)) continue;
                 File androidSrcFolder = new File(androidRawFolder, "src");
                 if (!androidSrcFolder.exists()) {
-                    System.out.println("No src folder for " + androidRawFolder.getAbsolutePath());
+                    log("No src folder for " + androidRawFolder.getAbsolutePath());
                     continue;
                 }
                 copyFolder(androidRawFolder.getAbsolutePath(), "src", androidOldNew.getOldVersionPath() + "/");
                 copyFolder(androidRawFolder.getAbsolutePath(), "src", androidOldCM.getOldVersionPath() + "/");
 
-                gitChangeBranch(androidRawFolder.getAbsolutePath(), androidNewVersion);
+                if (!gitChangeBranch(androidRawFolder.getAbsolutePath(), androidNewVersion)) continue;
                 androidSrcFolder = new File(androidRawFolder, "src");
                 if (!androidSrcFolder.exists()) {
-                    System.out.println("No src folder for " + androidRawFolder.getAbsolutePath());
+                    log("No src folder for " + androidRawFolder.getAbsolutePath());
                     continue;
                 }
                 copyFolder(androidRawFolder.getAbsolutePath(), "src", androidOldNew.getNewVersionPath() + "/");
 
-                gitChangeBranch(CMRawFolder.getAbsolutePath(), CMVersion);
+                if (!gitChangeBranch(CMRawFolder.getAbsolutePath(), CMVersion)) continue;
                 File CMSrcFolder = new File(CMRawFolder, "src");
                 if (!CMSrcFolder.exists()) {
-                    System.out.println("No src folder for " + CMSrcFolder.getAbsolutePath());
+                    log("No src folder for " + CMSrcFolder.getAbsolutePath());
                     continue;
                 }
                 copyFolder(CMRawFolder.getAbsolutePath(), "src", androidOldCM.getNewVersionPath() + "/");
 
-                String analysisName = subsystem.name + "-" + androidBaseVersion + "-" + androidNewVersion + "-" + CMVersion;
                 try {
                     evolutionAnalyser.run(analysisName, androidOldNew.getPath(), androidOldNew.getOldVersionPath(), androidOldNew.getNewVersionPath(),
                             androidOldCM.getPath(), androidOldCM.getOldVersionPath(), androidOldCM.getNewVersionPath(), sourcererCCPath);
@@ -96,24 +99,29 @@ public class Main {
     }
 
     private void copyFolder(String srcPath, String fileName, String dest) {
-        runSystemCommand(srcPath, true, "cp", "-r", fileName, dest);
+        runSystemCommand(srcPath, false, "cp", "-r", fileName, dest);
     }
 
     private void gitClone(String url, String path, String folderName) {
         runSystemCommand(path, true, "git", "clone", url, folderName);
     }
 
-    private void gitChangeBranch(String path, String branchName) {
-        runSystemCommand(path, true, "git", "checkout", branchName);
+    private boolean gitChangeBranch(String path, String branchName) {
+        String result = runSystemCommand(path, false, "git", "checkout", branchName);
+        return !result.toLowerCase().contains("did not match any");
     }
 
 
-    private SubSystem[] getSubsystems(String subsystemFilePath) {
+    private List<SubSystem> getSubsystems(String subsystemFilePath) {
         String[] subsystemsLines = readFile(subsystemFilePath);
-        SubSystem[] subsystems = new SubSystem[subsystemsLines.length];
+        List<SubSystem> subsystems = new ArrayList<>();
         for (int i = 0; i < subsystemsLines.length; i++) {
+            if (subsystemsLines[i].startsWith("#") || subsystemsLines[i].startsWith("/") || subsystemsLines[i].startsWith("!")) {
+                continue;
+            }
             String[] cells = subsystemsLines[i].split(",");
-            subsystems[i] = new SubSystem(cells[0], cells[1], cells[2]);
+            if (cells.length != 3) continue;
+            subsystems.add(new SubSystem(cells[0], cells[1], cells[2]));
         }
         return subsystems;
     }
@@ -163,7 +171,7 @@ public class Main {
 
 
         public String getName() {
-            return oldVersionName + "-" + newVersionName;
+            return oldVersionName + "_" + newVersionName;
         }
 
         public String getPath() {

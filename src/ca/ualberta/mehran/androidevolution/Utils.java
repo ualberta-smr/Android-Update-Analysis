@@ -4,11 +4,14 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
 
 public class Utils {
 
-    public static void runSystemCommand(String dir, boolean verbose, String... commands) {
+    public static String runSystemCommand(String dir, boolean verbose, String... commands) {
+        StringBuilder builder = new StringBuilder();
         try {
             if (verbose) {
                 for (String command : commands) {
@@ -27,14 +30,24 @@ public class Utils {
 
             String s = null;
             while ((s = stdInput.readLine()) != null) {
-                if (verbose) System.out.println(s);
+                builder.append(s);
+                builder.append("\n");
+                if (verbose) log(s);
             }
 
             while ((s = stdError.readLine()) != null) {
-                System.out.println(s);
+                builder.append(s);
+                builder.append("\n");
+                log(s);
             }
         } catch (IOException e) {
             e.printStackTrace();
         }
+        return builder.toString();
+    }
+
+    public static void log(String message) {
+        String timeStamp = new SimpleDateFormat("MM/dd/yyyy HH:mm:ss z").format(new Date());
+        System.out.println(timeStamp + " " + message);
     }
 }

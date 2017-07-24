@@ -37,6 +37,7 @@ public class MethodModel<T> {
     }
 
     public String getName() {
+        if (isConstructor()) return getSimpleClassName();
         return ((CtNamedElement) methodOrConstructor).getSimpleName();
     }
 
@@ -58,6 +59,12 @@ public class MethodModel<T> {
 
     public String getFullClassName() {
         return getPackageName() + "." + getClassName();
+    }
+
+    public String getSimpleClassName() {
+        if (className.contains("$")) {
+            return className.substring(className.indexOf("$") + 1);
+        } else return className;
     }
 
     public int getLineStart() {
