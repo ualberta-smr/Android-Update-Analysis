@@ -10,7 +10,7 @@ public class MethodMapping {
         this.type = type;
     }
 
-    public MethodModel getDestionationMethod() {
+    public MethodModel getDestinationMethod() {
         return destionationMethod;
     }
 
@@ -26,7 +26,7 @@ public class MethodMapping {
      * KNG_TRANSFORMATIONS: Matches discovered by Kim Miryung's tool.
      */
     public enum Type {
-        IDENTICAL, REFACTORED, ARGUMENTS_CHANGE, BODY_CHANGE_ONLY, NOT_FOUND, KNG_TRANSFORMATIONS
+        IDENTICAL, REFACTORED, ARGUMENTS_CHANGE, BODY_CHANGE_ONLY, NOT_FOUND, ADDED, OTHER, KNG_TRANSFORMATIONS
     }
 
 }

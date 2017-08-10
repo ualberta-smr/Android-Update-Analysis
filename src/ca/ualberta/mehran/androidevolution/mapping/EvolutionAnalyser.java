@@ -42,7 +42,7 @@ public class EvolutionAnalyser {
         }
 
         new EvolutionAnalyser().run(subsystemName, pathAndroidOldAndNew, pathAndroidOldAndNew_old, pathAndroidOldAndNew_new,
-                pathAndroidOldAndModified, pathAndroidOldAndModified_old, pathAndroidOldAndModified_new, sourcererCCPath);
+                pathAndroidOldAndModified, pathAndroidOldAndModified_old, pathAndroidOldAndModified_new, sourcererCCPath, "");
     }
 
     public void run(String subsystemName,
@@ -52,12 +52,15 @@ public class EvolutionAnalyser {
                     String pathAndroidOldAndModified,
                     String pathAndroidOldAndModified_old,
                     String pathAndroidOldAndModified_new,
-                    String sourcererCCPath) {
+                    String sourcererCCPath,
+                    String outputDir) {
         mSourcererCCPath = sourcererCCPath;
 
         Map<String, MethodMapping> mappingAndroidOldNew = new HashMap<>();
         Map<String, MethodMapping> mappingAndroidOldModified = new HashMap<>();
         Collection<String> projectOldMethods = new HashSet<>();
+        Collection<String> projectNewMethods = new HashSet<>();
+        Collection<String> projectModifiedMethods = new HashSet<>();
 
         int[] methodsCount = discoverMappings(pathAndroidOldAndNew,
                 pathAndroidOldAndNew_old,
@@ -67,13 +70,17 @@ public class EvolutionAnalyser {
                 pathAndroidOldAndModified_new,
                 mappingAndroidOldNew,
                 mappingAndroidOldModified,
-                projectOldMethods);
+                projectOldMethods,
+                projectNewMethods,
+                projectModifiedMethods);
 
         Map<MethodMapping.Type, Map<MethodMapping.Type, Integer>> stats = analyseMappings(projectOldMethods,
+                projectNewMethods,
+                projectModifiedMethods,
                 mappingAndroidOldNew,
                 mappingAndroidOldModified);
 
-        writeToOutput(methodsCount[0], methodsCount[1], methodsCount[2], stats, subsystemName + ".csv");
+        writeToOutput(methodsCount[0], methodsCount[1], methodsCount[2], stats, new File(outputDir, subsystemName + ".csv").getAbsolutePath());
     }
 
 
@@ -91,8 +98,10 @@ public class EvolutionAnalyser {
             CSVUtils.writeLine(outputWriter, Arrays.asList(String.valueOf(projectOldMethodsCount),
                     String.valueOf(projectNewMethodsCount), String.valueOf(projectModifiedMethodsCount)));
 
-            MethodMapping.Type[] types = new MethodMapping.Type[]{MethodMapping.Type.IDENTICAL, MethodMapping.Type.BODY_CHANGE_ONLY,
-                    MethodMapping.Type.REFACTORED, MethodMapping.Type.ARGUMENTS_CHANGE, MethodMapping.Type.NOT_FOUND};
+            MethodMapping.Type[] types = new MethodMapping.Type[]{MethodMapping.Type.IDENTICAL,
+                    MethodMapping.Type.REFACTORED, MethodMapping.Type.ARGUMENTS_CHANGE,
+                    MethodMapping.Type.BODY_CHANGE_ONLY, MethodMapping.Type.NOT_FOUND};//,
+//                    MethodMapping.Type.ADDED};
 
 //            CSVUtils.writeLine(outputWriter, Arrays.asList(types));
             for (MethodMapping.Type type : types) {
@@ -100,13 +109,17 @@ public class EvolutionAnalyser {
                 int total = 0;
                 List<String> catStats = new ArrayList<>();
                 for (MethodMapping.Type type1 : types) {
-                    catStats.add(String.valueOf(thisTypeStats.getOrDefault(type1, 0)));
-                    total += thisTypeStats.getOrDefault(type1, 0);
+                    int intersectionCount = thisTypeStats.getOrDefault(type1, 0);
+                    catStats.add(String.valueOf(intersectionCount));
+                    total += intersectionCount;
                 }
                 catStats.add(String.valueOf(total));
                 CSVUtils.writeLine(outputWriter, catStats);
             }
-
+            Map<MethodMapping.Type, Integer> addedStats = stats.get(MethodMapping.Type.ADDED);
+            CSVUtils.writeLine(outputWriter, Arrays.asList(String.valueOf(addedStats.get(MethodMapping.Type.NOT_FOUND)), // New methods in new project
+                    String.valueOf(addedStats.get(MethodMapping.Type.OTHER)), // New methods in modified project
+                    String.valueOf(addedStats.get(MethodMapping.Type.ADDED)))); // Mutual new methods
             outputWriter.flush();
             outputWriter.close();
         } catch (IOException e) {
@@ -117,6 +130,8 @@ public class EvolutionAnalyser {
     }
 
     private Map<MethodMapping.Type, Map<MethodMapping.Type, Integer>> analyseMappings(Collection<String> projectOldMethods,
+                                                                                      Collection<String> projectNewMethods,
+                                                                                      Collection<String> projectModifiedMethods,
                                                                                       Map<String, MethodMapping> mappingAndroidOldNew,
                                                                                       Map<String, MethodMapping> mappingAndroidOldModified) {
         Map<MethodMapping.Type, Collection<String>> mappingOldNewStats = categorizeMappingTypes(mappingAndroidOldNew);
@@ -142,7 +157,28 @@ public class EvolutionAnalyser {
         }
         oldNewAndModifiedIntersectionMap.put(MethodMapping.Type.NOT_FOUND, notFoundMethods);
 
+        Collection<String> newMethodsInProjectNew = filterUnmatchedMethods(projectNewMethods,
+                getStringListOfDestinationMethods(mappingAndroidOldNew.values()));
+        Collection<String> newMethodsInProjectModified = filterUnmatchedMethods(projectModifiedMethods,
+                getStringListOfDestinationMethods(mappingAndroidOldModified.values()));
+        int mutualNewMethods = 0;
+        for (String newProjectNewMethod : newMethodsInProjectNew) {
+            if (newMethodsInProjectModified.contains(newProjectNewMethod)) mutualNewMethods++;
+        }
+        Map<MethodMapping.Type, Integer> newMethods = new HashMap<>();
+        newMethods.put(MethodMapping.Type.ADDED, mutualNewMethods);
+        newMethods.put(MethodMapping.Type.NOT_FOUND, newMethodsInProjectNew.size()); // Bad notation, just to save the data
+        newMethods.put(MethodMapping.Type.OTHER, newMethodsInProjectModified.size());// Bad notation, just to save the data
+        oldNewAndModifiedIntersectionMap.put(MethodMapping.Type.ADDED, newMethods);
+
         return oldNewAndModifiedIntersectionMap;
+    }
+
+    private Collection<String> filterUnmatchedMethods(Collection<String> allMethods, Collection<String> matchedMethods) {
+        Collection<String> results = new HashSet<>();
+        results.addAll(allMethods);
+        results.removeAll(matchedMethods);
+        return results;
     }
 
     private Map<MethodMapping.Type, Collection<String>> categorizeMappingTypes(Map<String, MethodMapping> mapping) {
@@ -192,7 +228,9 @@ public class EvolutionAnalyser {
                                    String pathAndroidOldAndModified_new,
                                    Map<String, MethodMapping> mappingAndroidOldNew,
                                    Map<String, MethodMapping> mappingAndroidOldModified,
-                                   Collection<String> projectOldMethods) {
+                                   Collection<String> projectOldMethods,
+                                   Collection<String> projectNewMethods,
+                                   Collection<String> projectModifiedMethods) {
 
         Map<String, String> classesByQualifiedNameAndroidOldAndNew_old = new HashMap<>();
         Map<String, String> classesByQualifiedNameAndroidOldAndNew_new = new HashMap<>();
@@ -205,6 +243,8 @@ public class EvolutionAnalyser {
         Map<String, MethodModel> methodsBySignatureAndroidOldAndModified_old = spoonHelper.extractAllMethodsBySignature(pathAndroidOldAndModified_old, classesByQualifiedNameAndroidOldAndModified_old);
         Map<String, MethodModel> methodsBySignatureAndroidOldAndModified_new = spoonHelper.extractAllMethodsBySignature(pathAndroidOldAndModified_new, classesByQualifiedNameAndroidOldAndModified_new);
         projectOldMethods.addAll(methodsBySignatureAndroidOldAndNew_old.keySet());
+        projectNewMethods.addAll(methodsBySignatureAndroidOldAndNew_new.keySet());
+        projectModifiedMethods.addAll(methodsBySignatureAndroidOldAndModified_new.keySet());
 
         mappingAndroidOldNew.clear();
         mappingAndroidOldModified.clear();
@@ -316,7 +356,18 @@ public class EvolutionAnalyser {
         Collection<MethodModel> result = new HashSet<>();
 
         for (MethodMapping methodMapping : methodMappingList) {
-            result.add(methodMapping.getDestionationMethod());
+            result.add(methodMapping.getDestinationMethod());
+        }
+
+        return result;
+    }
+
+    private Collection<String> getStringListOfDestinationMethods(Collection<MethodMapping> methodMappingList) {
+        Collection<MethodModel> methods = getListOfDestinationMethods(methodMappingList);
+        Collection<String> result = new HashSet<>();
+
+        for (MethodModel method : methods) {
+            result.add(method.toString());
         }
 
         return result;
