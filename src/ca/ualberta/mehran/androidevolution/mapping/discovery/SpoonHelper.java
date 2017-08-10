@@ -53,7 +53,7 @@ public class SpoonHelper extends MappingDiscoverer {
         List<MethodModel> result = new ArrayList<>();
 
         if (cls instanceof CtClassImpl<?>) {
-            if (!(cls.getPosition() instanceof NoSourcePosition)) {
+            if (!(cls.getPosition() instanceof NoSourcePosition) && cls.isTopLevel()) {
                 classNameToFileMapping.put(cls.getQualifiedName(), cls.getPosition().getFile().getAbsolutePath());
             }
             Set<CtConstructor<?>> constructors = ((CtClassImpl) cls).getConstructors();
