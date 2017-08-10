@@ -1,6 +1,0 @@
-contacts,https://android.googlesource.com/platform/packages/apps/Contacts.git,https://github.com/LineageOS/android_packages_apps_Contacts.git
-#contacts_provider,https://android.googlesource.com/platform/packages/providers/ContactsProvider.git,https://github.com/LineageOS/android_packages_providers_ContactsProvider.git
-settings,https://android.googlesource.com/platform/packages/apps/Settings.git,https://github.com/LineageOS/android_packages_apps_Settings.git
-#calculator,https://android.googlesource.com/platform/packages/apps/Calculator.git,https://github.com/LineageOS/android_packages_apps_Calculator.git
-#calendar,https://android.googlesource.com/platform/packages/apps/Calendar.git,https://github.com/LineageOS/android_packages_apps_Calendar.git
-#camera,https://android.googlesource.com/platform/packages/apps/Camera2.git,https://github.com/LineageOS/android_packages_apps_Camera2.git
