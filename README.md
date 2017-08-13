@@ -4,7 +4,10 @@ A Java project for comparing changes between Android's proprietary updates and i
 ## How to run
 You should run the main function in `ca.ualberta.mehran.androidevolution.repositories.RepositoryAutomation`
 ### SourcererCC
-This project requires [SourcererCC](https://github.com/Mondego/SourcererCC) to run. Simply pass the path to SourcererCC as the first argument to the main function in `RepositoryAutomation` class
+This project requires [SourcererCC](https://github.com/Mondego/SourcererCC) to run. Simply pass the path to SourcererCC as the first argument to the main function in `RepositoryAutomation` class.
+
+When installing SourcererCC, make sure TXL is installed system-wide and run `make clean` and `make` in `parsesr/java/txl` directory. Also, make sure you delete the file `input/dataset/blocks.file`.
+
 ### Input
 This program also needs the version names and URLs of the Android subsystems that should be analysed. All this information are passed to the program via a CSV file. The program searches its current directory for all CSV files and processes them.
 
