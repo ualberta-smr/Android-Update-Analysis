@@ -58,9 +58,9 @@ public class EvolutionAnalyser {
 
         Map<String, MethodMapping> mappingAndroidOldNew = new HashMap<>();
         Map<String, MethodMapping> mappingAndroidOldModified = new HashMap<>();
-        Collection<String> projectOldMethods = new HashSet<>();
-        Collection<String> projectNewMethods = new HashSet<>();
-        Collection<String> projectModifiedMethods = new HashSet<>();
+        Map<String, MethodModel> projectOldMethods = new HashMap<>();
+        Map<String, MethodModel> projectNewMethods = new HashMap<>();
+        Map<String, MethodModel> projectModifiedMethods = new HashMap<>();
 
         int[] methodsCount = discoverMappings(pathAndroidOldAndNew,
                 pathAndroidOldAndNew_old,
@@ -74,7 +74,7 @@ public class EvolutionAnalyser {
                 projectNewMethods,
                 projectModifiedMethods);
 
-        Map<MethodMapping.Type, Map<MethodMapping.Type, Integer>> stats = analyseMappings(projectOldMethods,
+        Map<MethodMapping.Type, Map<MethodMapping.Type, List<Integer>>> stats = generateIntersectionsOfMappings(projectOldMethods,
                 projectNewMethods,
                 projectModifiedMethods,
                 mappingAndroidOldNew,
@@ -86,7 +86,7 @@ public class EvolutionAnalyser {
 
     private void writeToOutput(int projectOldMethodsCount, int projectNewMethodsCount,
                                int projectModifiedMethodsCount,
-                               Map<MethodMapping.Type, Map<MethodMapping.Type, Integer>> stats,
+                               Map<MethodMapping.Type, Map<MethodMapping.Type, List<Integer>>> stats,
                                String outputPath) {
         try {
             File outputFile = new File(outputPath);
@@ -105,21 +105,30 @@ public class EvolutionAnalyser {
 
 //            CSVUtils.writeLine(outputWriter, Arrays.asList(types));
             for (MethodMapping.Type type : types) {
-                Map<MethodMapping.Type, Integer> thisTypeStats = stats.getOrDefault(type, new HashMap<>());
+                Map<MethodMapping.Type, List<Integer>> thisTypeStats = stats.getOrDefault(type, new HashMap<>());
                 int total = 0;
                 List<String> catStats = new ArrayList<>();
                 for (MethodMapping.Type type1 : types) {
-                    int intersectionCount = thisTypeStats.getOrDefault(type1, 0);
-                    catStats.add(String.valueOf(intersectionCount));
+                    int intersectionCount = 0;
+                    int purgedCount = 0;
+                    try {
+                        intersectionCount = thisTypeStats.get(type1).get(0);
+                        purgedCount = thisTypeStats.get(type1).get(1);
+                    } catch (Exception e) {
+                    }
+                    catStats.add(purgedCount == 0 ?
+                            String.valueOf(intersectionCount) :
+                            String.valueOf(intersectionCount) + "(" + purgedCount + ")");
                     total += intersectionCount;
                 }
                 catStats.add(String.valueOf(total));
                 CSVUtils.writeLine(outputWriter, catStats);
             }
-            Map<MethodMapping.Type, Integer> addedStats = stats.get(MethodMapping.Type.ADDED);
-            CSVUtils.writeLine(outputWriter, Arrays.asList(String.valueOf(addedStats.get(MethodMapping.Type.NOT_FOUND)), // New methods in new project
-                    String.valueOf(addedStats.get(MethodMapping.Type.OTHER)), // New methods in modified project
-                    String.valueOf(addedStats.get(MethodMapping.Type.ADDED)))); // Mutual new methods
+            Map<MethodMapping.Type, List<Integer>> addedStats = stats.get(MethodMapping.Type.ADDED);
+            int identicalMutualNewMethods = addedStats.get(MethodMapping.Type.ADDED).get(1);
+            CSVUtils.writeLine(outputWriter, Arrays.asList(String.valueOf(addedStats.get(MethodMapping.Type.NOT_FOUND).get(0)), // New methods in new project
+                    String.valueOf(addedStats.get(MethodMapping.Type.OTHER).get(0)), // New methods in modified project
+                    String.valueOf(addedStats.get(MethodMapping.Type.ADDED).get(0)) + "(" + identicalMutualNewMethods + ")")); // Mutual new methods
             outputWriter.flush();
             outputWriter.close();
         } catch (IOException e) {
@@ -129,46 +138,91 @@ public class EvolutionAnalyser {
 
     }
 
-    private Map<MethodMapping.Type, Map<MethodMapping.Type, Integer>> analyseMappings(Collection<String> projectOldMethods,
-                                                                                      Collection<String> projectNewMethods,
-                                                                                      Collection<String> projectModifiedMethods,
-                                                                                      Map<String, MethodMapping> mappingAndroidOldNew,
-                                                                                      Map<String, MethodMapping> mappingAndroidOldModified) {
+    private Map<MethodMapping.Type, Map<MethodMapping.Type, List<Integer>>> generateIntersectionsOfMappings(Map<String, MethodModel> projectOldMethods,
+                                                                                                            Map<String, MethodModel> projectNewMethods,
+                                                                                                            Map<String, MethodModel> projectModifiedMethods,
+                                                                                                            Map<String, MethodMapping> mappingAndroidOldNew,
+                                                                                                            Map<String, MethodMapping> mappingAndroidOldModified) {
         Map<MethodMapping.Type, Collection<String>> mappingOldNewStats = categorizeMappingTypes(mappingAndroidOldNew);
 //        Map<MethodMapping.Type, Collection<MethodModel>> mappingOldModifiedStats = categorizeMappingTypes(mappingAndroidOldModified);
 
-        Map<MethodMapping.Type, Map<MethodMapping.Type, Integer>> oldNewAndModifiedIntersectionMap = new HashMap<>();
+        Map<MethodMapping.Type, Map<MethodMapping.Type, List<Integer>>> oldNewAndModifiedIntersectionMap = new HashMap<>();
         for (MethodMapping.Type type : mappingOldNewStats.keySet()) {
             Collection<String> thisTypeMethods = mappingOldNewStats.get(type);
-            Map<MethodMapping.Type, Integer> thisTypeStats = filterMethodMapping(mappingAndroidOldModified, thisTypeMethods);
-            oldNewAndModifiedIntersectionMap.put(type, thisTypeStats);
+            Map<MethodMapping.Type, Collection<String>> thisTypeMappingForModified = filterMethodMapping(mappingAndroidOldModified, thisTypeMethods);
+
+            // Purge duplicate changes
+            int purgedMutualMethods = 0;
+            if (type != MethodMapping.Type.IDENTICAL && thisTypeMappingForModified.containsKey(type)) {
+                for (String mutualOldMethod : thisTypeMappingForModified.get(type)) {
+                    MethodMapping oldNewMapping = mappingAndroidOldNew.get(mutualOldMethod);
+                    MethodMapping oldManipulatedMapping = mappingAndroidOldModified.get(mutualOldMethod);
+                    if (oldNewMapping != null && oldManipulatedMapping != null && oldNewMapping.equals(oldManipulatedMapping)) {
+                        purgedMutualMethods++;
+                    } else if (oldNewMapping != null && oldManipulatedMapping != null && type == MethodMapping.Type.BODY_CHANGE_ONLY) { // Manual inspection
+//                        System.out.println("AO: " + mutualOldMethod);
+//                        System.out.println("AN: " + oldNewMapping.getDestinationMethod().getUMLFormSignature());
+//                        System.out.println("CM: " + oldManipulatedMapping.getDestinationMethod().getUMLFormSignature());
+//                        System.out.println("--------------------------");
+                    }
+                }
+            }
+
+            Map<MethodMapping.Type, List<Integer>> thisTypeStatsForModified = new HashMap<>();
+            for (MethodMapping.Type type1 : thisTypeMappingForModified.keySet()) {
+                int intersectionCount = thisTypeMappingForModified.get(type1).size();
+                if (type1 != MethodMapping.Type.IDENTICAL && type1 == type) {
+                    List<Integer> countList = new ArrayList<>();
+                    countList.add(thisTypeMappingForModified.get(type1).size() - purgedMutualMethods);
+                    countList.add(purgedMutualMethods);
+                    thisTypeStatsForModified.put(type1, countList);
+                } else {
+                    thisTypeStatsForModified.put(type1, Arrays.asList(intersectionCount));
+                }
+            }
+            oldNewAndModifiedIntersectionMap.put(type, thisTypeStatsForModified);
         }
 
-        Map<MethodMapping.Type, Integer> notFoundMethods = new HashMap<>();
-        for (String methodModel : projectOldMethods) {
+        // Identify deleted methods
+        Map<MethodMapping.Type, List<Integer>> notFoundMethods = new HashMap<>();
+        for (String methodModel : projectOldMethods.keySet()) {
             if (!mappingAndroidOldNew.containsKey(methodModel)) {
                 MethodMapping.Type modifiedType = MethodMapping.Type.NOT_FOUND;
                 if (mappingAndroidOldModified.containsKey(methodModel)) {
                     modifiedType = mappingAndroidOldModified.get(methodModel).getType();
                 }
-                int count = notFoundMethods.getOrDefault(modifiedType, 0);
-                notFoundMethods.put(modifiedType, count + 1);
+                if (!notFoundMethods.containsKey(modifiedType)) {
+                    notFoundMethods.put(modifiedType, new ArrayList<>());
+                    notFoundMethods.get(modifiedType).add(0);
+                }
+                int count = notFoundMethods.get(modifiedType).get(0) + 1;
+                notFoundMethods.get(modifiedType).clear();
+                notFoundMethods.get(modifiedType).add(count);
             }
         }
         oldNewAndModifiedIntersectionMap.put(MethodMapping.Type.NOT_FOUND, notFoundMethods);
 
-        Collection<String> newMethodsInProjectNew = filterUnmatchedMethods(projectNewMethods,
+        // Identify new methods
+        Collection<String> newMethodsInProjectNew = filterUnmatchedMethods(projectNewMethods.keySet(),
                 getStringListOfDestinationMethods(mappingAndroidOldNew.values()));
-        Collection<String> newMethodsInProjectModified = filterUnmatchedMethods(projectModifiedMethods,
+        Collection<String> newMethodsInProjectModified = filterUnmatchedMethods(projectModifiedMethods.keySet(),
                 getStringListOfDestinationMethods(mappingAndroidOldModified.values()));
         int mutualNewMethods = 0;
+        int identicalMutualNewMethods = 0;
         for (String newProjectNewMethod : newMethodsInProjectNew) {
-            if (newMethodsInProjectModified.contains(newProjectNewMethod)) mutualNewMethods++;
+            if (newMethodsInProjectModified.contains(newProjectNewMethod)) {
+                mutualNewMethods++;
+                if (projectNewMethods.containsKey(newProjectNewMethod) && projectModifiedMethods.containsKey(newProjectNewMethod)) {
+                    if (projectNewMethods.get(newProjectNewMethod).readFromFile().equals(projectModifiedMethods.get(newProjectNewMethod).readFromFile())) {
+                        identicalMutualNewMethods++;
+                    }
+                }
+            }
         }
-        Map<MethodMapping.Type, Integer> newMethods = new HashMap<>();
-        newMethods.put(MethodMapping.Type.ADDED, mutualNewMethods);
-        newMethods.put(MethodMapping.Type.NOT_FOUND, newMethodsInProjectNew.size()); // Bad notation, just to save the data
-        newMethods.put(MethodMapping.Type.OTHER, newMethodsInProjectModified.size());// Bad notation, just to save the data
+        Map<MethodMapping.Type, List<Integer>> newMethods = new HashMap<>();
+        newMethods.put(MethodMapping.Type.ADDED, Arrays.asList(mutualNewMethods - identicalMutualNewMethods, identicalMutualNewMethods));
+        newMethods.put(MethodMapping.Type.NOT_FOUND, Arrays.asList(newMethodsInProjectNew.size())); // Bad notation, just to save the data
+        newMethods.put(MethodMapping.Type.OTHER, Arrays.asList(newMethodsInProjectModified.size()));// Bad notation, just to save the data
         oldNewAndModifiedIntersectionMap.put(MethodMapping.Type.ADDED, newMethods);
 
         return oldNewAndModifiedIntersectionMap;
@@ -195,15 +249,18 @@ public class EvolutionAnalyser {
         return result;
     }
 
-    private Map<MethodMapping.Type, Integer> filterMethodMapping(Map<String, MethodMapping> mapping,
-                                                                 Collection<String> methodsToFilter) {
-        Map<MethodMapping.Type, Integer> result = new HashMap<>();
+    private Map<MethodMapping.Type, Collection<String>> filterMethodMapping(Map<String, MethodMapping> mapping,
+                                                                            Collection<String> methodsToFilter) {
+        Map<MethodMapping.Type, Collection<String>> result = new HashMap<>();
         for (String methodModel : methodsToFilter) {
             MethodMapping.Type mappingType = MethodMapping.Type.NOT_FOUND;
             if (mapping.containsKey(methodModel)) {
                 mappingType = mapping.get(methodModel).getType();
             }
-            result.put(mappingType, result.getOrDefault(mappingType, 0) + 1);
+            if (!result.containsKey(mappingType)) {
+                result.put(mappingType, new HashSet<>());
+            }
+            result.get(mappingType).add(methodModel);
         }
         return result;
     }
@@ -228,9 +285,9 @@ public class EvolutionAnalyser {
                                    String pathAndroidOldAndModified_new,
                                    Map<String, MethodMapping> mappingAndroidOldNew,
                                    Map<String, MethodMapping> mappingAndroidOldModified,
-                                   Collection<String> projectOldMethods,
-                                   Collection<String> projectNewMethods,
-                                   Collection<String> projectModifiedMethods) {
+                                   Map<String, MethodModel> projectOldMethods,
+                                   Map<String, MethodModel> projectNewMethods,
+                                   Map<String, MethodModel> projectModifiedMethods) {
 
         Map<String, String> classesByQualifiedNameAndroidOldAndNew_old = new HashMap<>();
         Map<String, String> classesByQualifiedNameAndroidOldAndNew_new = new HashMap<>();
@@ -242,9 +299,9 @@ public class EvolutionAnalyser {
         Map<String, MethodModel> methodsBySignatureAndroidOldAndNew_new = spoonHelper.extractAllMethodsBySignature(pathAndroidOldAndNew_new, classesByQualifiedNameAndroidOldAndNew_new);
         Map<String, MethodModel> methodsBySignatureAndroidOldAndModified_old = spoonHelper.extractAllMethodsBySignature(pathAndroidOldAndModified_old, classesByQualifiedNameAndroidOldAndModified_old);
         Map<String, MethodModel> methodsBySignatureAndroidOldAndModified_new = spoonHelper.extractAllMethodsBySignature(pathAndroidOldAndModified_new, classesByQualifiedNameAndroidOldAndModified_new);
-        projectOldMethods.addAll(methodsBySignatureAndroidOldAndNew_old.keySet());
-        projectNewMethods.addAll(methodsBySignatureAndroidOldAndNew_new.keySet());
-        projectModifiedMethods.addAll(methodsBySignatureAndroidOldAndModified_new.keySet());
+        projectOldMethods.putAll(methodsBySignatureAndroidOldAndNew_old);
+        projectNewMethods.putAll(methodsBySignatureAndroidOldAndNew_new);
+        projectModifiedMethods.putAll(methodsBySignatureAndroidOldAndModified_new);
 
         mappingAndroidOldNew.clear();
         mappingAndroidOldModified.clear();

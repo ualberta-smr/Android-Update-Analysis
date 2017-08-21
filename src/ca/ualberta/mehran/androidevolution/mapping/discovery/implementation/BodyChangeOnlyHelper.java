@@ -25,7 +25,17 @@ public class BodyChangeOnlyHelper extends MappingDiscoverer {
             for (MethodModel oldMethodInClass : oldMethodsInClass) {
                 if (newMethodsBySignature.containsKey(oldMethodInClass.getUMLFormSignature())) {
                     MethodModel newMethod = newMethodsBySignature.get(oldMethodInClass.getUMLFormSignature());
-                    result.put(oldMethodInClass, new MethodMapping(newMethod, MethodMapping.Type.BODY_CHANGE_ONLY));
+                    try {
+                        if (oldMethodInClass.readFromFile().equals(newMethod.readFromFile())) {
+                            result.put(oldMethodInClass, new MethodMapping(newMethod, MethodMapping.Type.IDENTICAL));
+                        } else {
+                            result.put(oldMethodInClass, new MethodMapping(newMethod, MethodMapping.Type.BODY_CHANGE_ONLY));
+                        }
+                    } catch (Exception e) {
+                        if (!result.containsKey(oldMethodInClass)){
+                            result.put(oldMethodInClass, new MethodMapping(newMethod, MethodMapping.Type.BODY_CHANGE_ONLY));
+                        }
+                    }
                 }
             }
         }

@@ -5,7 +5,10 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
+import java.util.Scanner;
 
 
 public class Utils {
@@ -49,5 +52,29 @@ public class Utils {
     public static void log(String message) {
         String timeStamp = new SimpleDateFormat("MM/dd/yyyy HH:mm:ss z").format(new Date());
         System.out.println(timeStamp + " " + message);
+    }
+
+    public static List<String> readFile(File file) {
+        try {
+            List<String> lines = new ArrayList<>();
+            Scanner input = new Scanner(file);
+            while (input.hasNextLine()) {
+                lines.add(input.nextLine());
+            }
+            return lines;
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    public static List<String> readFile(File file, int lineStart, int lineEnd) {
+        List<String> lines = readFile(file);
+        try {
+            return lines.subList(lineStart - 1, lineEnd);
+        } catch (NullPointerException e) {
+            e.printStackTrace();
+            return lines;
+        }
     }
 }
