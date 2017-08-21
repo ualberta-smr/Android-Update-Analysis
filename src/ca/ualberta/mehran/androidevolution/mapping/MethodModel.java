@@ -1,8 +1,10 @@
 package ca.ualberta.mehran.androidevolution.mapping;
 
+import ca.ualberta.mehran.androidevolution.Utils;
 import spoon.reflect.declaration.*;
 import spoon.support.reflect.declaration.CtTypeImpl;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -129,6 +131,16 @@ public class MethodModel<T> {
 
     public CtConstructor<T> getConstructor() {
         return (CtConstructor) methodOrConstructor;
+    }
+
+    public String readFromFile() {
+        List<String> lines = Utils.readFile(new File(getFilePath()), getLineStart(), getLineEnd());
+        StringBuilder daEntireThing = new StringBuilder();
+        for (String line : lines) {
+            daEntireThing.append(line.trim());
+            daEntireThing.append("\n");
+        }
+        return daEntireThing.toString();
     }
 
     @Override

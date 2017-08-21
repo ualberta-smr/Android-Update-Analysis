@@ -2,20 +2,50 @@ package ca.ualberta.mehran.androidevolution.mapping;
 
 public class MethodMapping {
 
-    private MethodModel destionationMethod;
+    private MethodModel destinationMethod;
     private Type type;
 
-    public MethodMapping(MethodModel destionationMethod, Type type) {
-        this.destionationMethod = destionationMethod;
+    public MethodMapping(MethodModel destinationMethod, Type type) {
+        this.destinationMethod = destinationMethod;
         this.type = type;
     }
 
     public MethodModel getDestinationMethod() {
-        return destionationMethod;
+        return destinationMethod;
     }
 
     public Type getType() {
         return type;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (obj == null) return false;
+        if (!(obj instanceof MethodMapping)) return false;
+        MethodMapping otherMapping = (MethodMapping) obj;
+
+        if (getType() != otherMapping.getType()) return false;
+        MethodModel otherMethod = otherMapping.getDestinationMethod();
+        MethodModel thisMethod = getDestinationMethod();
+
+        if (otherMethod == null || thisMethod == null) return false;
+
+        if (!thisMethod.getUMLFormSignature().equals(otherMethod.getUMLFormSignature())) return false;
+
+        switch (getType()) {
+            case IDENTICAL:
+            case NOT_FOUND:
+            case ADDED:
+            case OTHER:
+                return true;
+
+            case REFACTORED:
+            case ARGUMENTS_CHANGE:
+            case BODY_CHANGE_ONLY:
+                return thisMethod.readFromFile().equals(otherMethod.readFromFile());
+        }
+
+        return super.equals(obj);
     }
 
     /**
