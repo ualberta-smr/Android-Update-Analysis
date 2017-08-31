@@ -1,5 +1,7 @@
 .DS_Store
+*/.DS_Store
+*/.idea/
 .idea/
-out/
-output/
+java/out/
+java/output/
 *.csv

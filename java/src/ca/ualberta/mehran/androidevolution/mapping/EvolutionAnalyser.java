@@ -154,22 +154,27 @@ public class EvolutionAnalyser {
             // Purge duplicate changes
             int purgedMutualMethods = 0;
             if (type != MethodMapping.Type.IDENTICAL && thisTypeMappingForModified.containsKey(type)) {
+                Collection<String> genuineChangesMethodsIntersection = new HashSet<>();
                 for (String mutualOldMethod : thisTypeMappingForModified.get(type)) {
                     MethodMapping oldNewMapping = mappingAndroidOldNew.get(mutualOldMethod);
                     MethodMapping oldManipulatedMapping = mappingAndroidOldModified.get(mutualOldMethod);
                     if (oldNewMapping != null && oldManipulatedMapping != null && oldNewMapping.equals(oldManipulatedMapping)) {
                         purgedMutualMethods++;
-                    } else if (oldNewMapping != null && oldManipulatedMapping != null && type == MethodMapping.Type.BODY_CHANGE_ONLY) { // Manual inspection
-//                        System.out.println("AO: " + mutualOldMethod);
-//                        System.out.println("AN: " + oldNewMapping.getDestinationMethod().getUMLFormSignature());
-//                        System.out.println("CM: " + oldManipulatedMapping.getDestinationMethod().getUMLFormSignature());
-//                        System.out.println("--------------------------");
+                    } else if (oldNewMapping != null && oldManipulatedMapping != null) { // Manual inspection
+                        genuineChangesMethodsIntersection.add(mutualOldMethod);
                     }
                 }
+//                randomSample(genuineChangesMethodsIntersection, 20, projectOldMethods, projectNewMethods,
+//                        projectModifiedMethods, mappingAndroidOldNew, mappingAndroidOldModified);
             }
 
             Map<MethodMapping.Type, List<Integer>> thisTypeStatsForModified = new HashMap<>();
             for (MethodMapping.Type type1 : thisTypeMappingForModified.keySet()) {
+                // Random sample
+                if ((type == MethodMapping.Type.IDENTICAL || type == MethodMapping.Type.NOT_FOUND) && type1 == MethodMapping.Type.NOT_FOUND) {
+                    randomSample(thisTypeMappingForModified.get(type1), 20, projectOldMethods, projectNewMethods,
+                            projectModifiedMethods, mappingAndroidOldNew, mappingAndroidOldModified);
+                }
                 int intersectionCount = thisTypeMappingForModified.get(type1).size();
                 if (type1 != MethodMapping.Type.IDENTICAL && type1 == type) {
                     List<Integer> countList = new ArrayList<>();
@@ -198,6 +203,13 @@ public class EvolutionAnalyser {
                 int count = notFoundMethods.get(modifiedType).get(0) + 1;
                 notFoundMethods.get(modifiedType).clear();
                 notFoundMethods.get(modifiedType).add(count);
+                if (modifiedType == MethodMapping.Type.NOT_FOUND) {
+                    System.out.println(methodModel);
+                    System.out.println("AO: " + projectOldMethods.get(methodModel).getFilePath());
+                    System.out.println("AN: Deleted");
+                    System.out.println("CM: Deleted");
+                    System.out.println("--------------------------");
+                }
             }
         }
         oldNewAndModifiedIntersectionMap.put(MethodMapping.Type.NOT_FOUND, notFoundMethods);
@@ -428,5 +440,54 @@ public class EvolutionAnalyser {
         }
 
         return result;
+    }
+
+    private void randomSample(Collection<String> mainSet, int samplesCount, Map<String, MethodModel> projectOldMethods,
+                              Map<String, MethodModel> projectNewMethods,
+                              Map<String, MethodModel> projectModifiedMethods,
+                              Map<String, MethodMapping> mappingAndroidOldNew,
+                              Map<String, MethodMapping> mappingAndroidOldModified) {
+//        Set<Integer> randomIndices = new HashSet<>();
+//        Random rand = new Random();
+//        while (randomIndices.size() < Math.min(samplesCount, mainSet.size())) {
+//            int newIndex = rand.nextInt(mainSet.size());
+//            if (!randomIndices.contains(newIndex)) {
+//                randomIndices.add(newIndex);
+//            }
+//        }
+//        int index = -1;
+        for (String mutualOldMethod : mainSet) {
+//            index++;
+//            if (randomIndices.contains(index)) {
+            MethodMapping oldNewMapping = mappingAndroidOldNew.get(mutualOldMethod);
+            MethodMapping oldManipulatedMapping = mappingAndroidOldModified.get(mutualOldMethod);
+//                if (oldManipulatedMapping != null) {
+//                    List<String> aoString = Arrays.asList(projectOldMethods.get(mutualOldMethod).readFromFile().split("\n"));
+//                    List<String> anString = Arrays.asList(projectNewMethods.get(oldNewMapping.getDestinationMethod().getUMLFormSignature()).readFromFile().split("\n"));
+//                    List<String> cmString = Arrays.asList(projectModifiedMethods.get(oldManipulatedMapping.getDestinationMethod().getUMLFormSignature()).readFromFile().split("\n"));
+//                    List<Delta> anDeltas = DiffUtils.diff(aoString, anString).getDeltas();
+//                    Set<Integer> anDeltasPosition = new HashSet<>();
+            System.out.println(mutualOldMethod);
+            System.out.println("AO: " + projectOldMethods.get(mutualOldMethod).getFilePath());
+            System.out.println("AN: " + ((oldNewMapping == null) ? "Deleted" : oldNewMapping.getType()));
+            System.out.println("CM: " + ((oldManipulatedMapping == null) ? "Deleted" : oldManipulatedMapping.getType()));
+//                    System.out.println("AN: " + projectNewMethods.get(oldNewMapping.getDestinationMethod().getUMLFormSignature()).getFilePath());
+//
+//                    for (Delta delta : anDeltas) {
+////                        anDeltasPosition.add(delta.getOriginal().getPosition());
+//                        System.out.println(delta);
+//                    }
+//                    System.out.println("CM: " + projectModifiedMethods.get(oldManipulatedMapping.getDestinationMethod().getUMLFormSignature()).getFilePath());
+//                    List<Delta> cmDeltas = DiffUtils.diff(aoString, cmString).getDeltas();
+//                    for (Delta delta : cmDeltas) {
+////                        if (anDeltasPosition.contains(delta.getOriginal().getPosition())){
+//
+//                        System.out.println(delta);
+////                        }
+//                    }
+            System.out.println("--------------------------");
+//                }
+//            }
+        }
     }
 }

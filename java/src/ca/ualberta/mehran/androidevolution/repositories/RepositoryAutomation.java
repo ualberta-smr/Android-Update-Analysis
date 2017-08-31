@@ -106,8 +106,8 @@ public class RepositoryAutomation {
                         } catch (Throwable e) {
                             e.printStackTrace();
                         }
-                        removeFolder(new File(androidOldNew.getPath()));
-                        removeFolder(new File(androidOldCM.getPath()));
+//                        removeFolder(new File(androidOldNew.getPath()));
+//                        removeFolder(new File(androidOldCM.getPath()));
                     }
                 }
             }
