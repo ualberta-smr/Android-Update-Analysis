@@ -54,3 +54,9 @@ Body-only | |  | |  |  | |
 Deleted | |  |  |  |  | |
 
 There might be numbers written in paranthesis for the intersections with the same change type in AN and CM. Those are the number of method that had an identical type of change, and were purged from the total number of methods in that category. The number before paranthesis does not include the number in the paranthesis, so the numbers in paranthesis can be simply ignored in most cases.
+
+### 3. Purge result tables
+Some result tables belong to non-Java repositories and should be purged. In order to do so, you can use the [purge_results.py](python/purge_results.py) file to do so. It looks for csv files in results folder in the current path, and deletes those which have zero methods in either AO, AN or CM.
+
+### 4. Draw plots
+[process_results_charts.py](python/process_results_charts.py) can be used for aggregating csv files and creating csv files sutibale for drawing plots. Like the previous script, [process_results_charts.py](python/process_results_charts.py) expects the table csv files to be in results folder in current path. 
