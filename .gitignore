@@ -1,6 +1,7 @@
 .DS_Store
 */.DS_Store
 */.idea/
+*/*.iml
 .idea/
 java/out/
 java/output/

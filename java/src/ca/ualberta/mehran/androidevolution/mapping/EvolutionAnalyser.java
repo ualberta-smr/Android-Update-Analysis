@@ -171,10 +171,10 @@ public class EvolutionAnalyser {
             Map<MethodMapping.Type, List<Integer>> thisTypeStatsForModified = new HashMap<>();
             for (MethodMapping.Type type1 : thisTypeMappingForModified.keySet()) {
                 // Random sample
-                if ((type == MethodMapping.Type.IDENTICAL || type == MethodMapping.Type.NOT_FOUND) && type1 == MethodMapping.Type.NOT_FOUND) {
-                    randomSample(thisTypeMappingForModified.get(type1), 20, projectOldMethods, projectNewMethods,
-                            projectModifiedMethods, mappingAndroidOldNew, mappingAndroidOldModified);
-                }
+//                if ((type == MethodMapping.Type.IDENTICAL || type == MethodMapping.Type.NOT_FOUND) && type1 == MethodMapping.Type.NOT_FOUND) {
+//                    randomSample(thisTypeMappingForModified.get(type1), 20, projectOldMethods, projectNewMethods,
+//                            projectModifiedMethods, mappingAndroidOldNew, mappingAndroidOldModified);
+//                }
                 int intersectionCount = thisTypeMappingForModified.get(type1).size();
                 if (type1 != MethodMapping.Type.IDENTICAL && type1 == type) {
                     List<Integer> countList = new ArrayList<>();
@@ -203,13 +203,13 @@ public class EvolutionAnalyser {
                 int count = notFoundMethods.get(modifiedType).get(0) + 1;
                 notFoundMethods.get(modifiedType).clear();
                 notFoundMethods.get(modifiedType).add(count);
-                if (modifiedType == MethodMapping.Type.NOT_FOUND) {
-                    System.out.println(methodModel);
-                    System.out.println("AO: " + projectOldMethods.get(methodModel).getFilePath());
-                    System.out.println("AN: Deleted");
-                    System.out.println("CM: Deleted");
-                    System.out.println("--------------------------");
-                }
+//                if (modifiedType == MethodMapping.Type.NOT_FOUND) {
+//                    System.out.println(methodModel);
+//                    System.out.println("AO: " + projectOldMethods.get(methodModel).getFilePath());
+//                    System.out.println("AN: Deleted");
+//                    System.out.println("CM: Deleted");
+//                    System.out.println("--------------------------");
+//                }
             }
         }
         oldNewAndModifiedIntersectionMap.put(MethodMapping.Type.NOT_FOUND, notFoundMethods);
