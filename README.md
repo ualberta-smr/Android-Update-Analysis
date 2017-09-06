@@ -1,15 +1,24 @@
 # mehran-android-evolution
-A Java project for comparing changes between Android's proprietary updates and independently modified versions of it.
+A project for comparing changes between Android's proprietary updates and CyanogenMod (an AOSP-based OS) updates.
 
 ## How to run
-You should run the main function in `ca.ualberta.mehran.androidevolution.repositories.RepositoryAutomation`
-### SourcererCC
+Running the code from scratch invloved multiple steps.
+
+### 1. Mutual repositories
+You should first fetch the list of mutual repositories (or subsystems) between corresponding Android and CyanogenMod versions. This can be achieved by running the [repo.py](python/repo.py) script. This script will create a csv file for each pair of Android and CyanogenMod version, containing a list of repositories and their AOSP and CyanogenMod URLs. These files will be used as the input of the Java Project.
+
+You can find the csv files we used for our ICSE 2018 paper submission [here](https://github.com/ualberta-se/icse-2018-mehran-results/blob/master/subsystem_names).
+
+### 2. The Java script
+Using the csv files produced in the previous section and the path to SourcererCC you can run the Java script. In order to do so, you should copy the csv files in the same path as the Java file, and pass the path to the SourcerCC as an argument. You should run the main function in `ca.ualberta.mehran.androidevolution.repositories.RepositoryAutomation`
+
+#### SourcererCC
 This project requires [SourcererCC](https://github.com/Mondego/SourcererCC) to run. Simply pass the path to SourcererCC as the first argument to the main function in `RepositoryAutomation` class.
 
 When installing SourcererCC, make sure TXL is installed system-wide and run `make clean` and `make` in `parsesr/java/txl` directory. Also, make sure you delete the file `input/dataset/blocks.file`.
 
-### Input
-This program also needs the version names and URLs of the Android subsystems that should be analysed. All this information are passed to the program via a CSV file. The program searches its current directory for all CSV files and processes them.
+#### Input
+This program needs the version names and URLs of the Android subsystems that should be analysed as csv files. All this information are passed to the program via csv files. The program searches its current directory for all CSV files and processes them.
 
 Each line in the CSV file could be either a combination of three versions, a subsystem or a comment:
 1. Version line begins with `versions:` and follow by three version names: Android old version, Android new version and the CyanogenMod version that is based on the old version of Android. These names correspond to tag names in Android repositories and branch names in CyanogenMod.
@@ -31,13 +40,10 @@ packages_apps_KeyChain,https://android.googlesource.com/platform/packages/apps/K
 #packages_providers_UserDictionaryProvider,https://android.googlesource.com/platform/packages/providers/UserDictionaryProvider,https://review.lineageos.org/LineageOS/android_packages_providers_UserDictionaryProvider
 ```
 
-### Output
-For each subsystem and each tuple of versions, a CSV file will be generated in the output folder, in the current path.
+#### Output
+For each subsystem and each tuple of versions, a csv file will be generated in the output folder, in the current path.
 #### Format
-The first line of the output consist of three numbers: Number of methods in Android old, Android new and CyanogenMod.
-The last line is the number of new methods in Android new, CyanogenMod, and mutual new methods.
-The lines within follow this format:
-
+Each csv file includes information regarding the three versions (AO, AN and CM) of a subsystem. The line includes the number of method is AO, AN and CM. The last line includes the number of new methods in AN, CM and methods with same signature and different body that are added to both AN and CM; the numebr in paranthesis is the number of identical new methods between CM and AN (same signature and body). The remaining lines between the first and last line constitue the results table for methods in AO, and their status in AN and CM. They layout of the table follows the following format:
 
 |         | Identical | Refactored | ArgumentChanged | Body-only | Deleted | SUM |
 |:-------:| :-------: |:--------------:| :---------:| :--------------:| :------:|:--: |
@@ -46,3 +52,11 @@ Refactored | |  | |  |  | |
 ArgumentChanged | |  |  |  | | |
 Body-only | |  | |  |  | |
 Deleted | |  |  |  |  | |
+
+There might be numbers written in paranthesis for the intersections with the same change type in AN and CM. Those are the number of method that had an identical type of change, and were purged from the total number of methods in that category. The number before paranthesis does not include the number in the paranthesis, so the numbers in paranthesis can be simply ignored in most cases.
+
+### 3. Purge result tables
+Some result tables belong to non-Java repositories and should be purged. In order to do so, you can use the [purge_results.py](python/purge_results.py) file to do so. It looks for csv files in results folder in the current path, and deletes those which have zero methods in either AO, AN or CM.
+
+### 4. Draw plots
+[process_results_charts.py](python/process_results_charts.py) can be used for aggregating csv files and creating csv files sutibale for drawing plots. Like the previous script, [process_results_charts.py](python/process_results_charts.py) expects the table csv files to be in results folder in current path. 
