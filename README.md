@@ -1,4 +1,4 @@
-# mehran-android-evolution
+# Android Update Analysis
 A project for comparing changes between Android's proprietary updates and CyanogenMod (an AOSP-based OS) updates.
 
 ## How to run
