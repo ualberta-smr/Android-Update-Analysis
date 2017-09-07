@@ -99,7 +99,8 @@ public class EvolutionAnalyser {
                     String.valueOf(projectNewMethodsCount), String.valueOf(projectModifiedMethodsCount)));
 
             MethodMapping.Type[] types = new MethodMapping.Type[]{MethodMapping.Type.IDENTICAL,
-                    MethodMapping.Type.REFACTORED, MethodMapping.Type.ARGUMENTS_CHANGE,
+                    MethodMapping.Type.REFACTORED_MOVE, MethodMapping.Type.REFACTORED_RENAME, MethodMapping.Type.REFACTORED_INLINE, MethodMapping.Type.REFACTORED_EXTRACT, MethodMapping.Type.REFACTORED_ARGUMENTS_RENAME, MethodMapping.Type.REFACTORED_ARGUMENTS_REORDER,
+                    MethodMapping.Type.ARGUMENTS_CHANGE_ADD, MethodMapping.Type.ARGUMENTS_CHANGE_REMOVE, MethodMapping.Type.ARGUMENTS_CHANGE_TYPE_CHANGE,
                     MethodMapping.Type.BODY_CHANGE_ONLY, MethodMapping.Type.NOT_FOUND};//,
 //                    MethodMapping.Type.ADDED};
 
