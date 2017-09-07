@@ -7,6 +7,13 @@ Running the code from scratch invloved multiple steps.
 ### 1. Mutual repositories
 You should first fetch the list of mutual repositories (or subsystems) between corresponding Android and CyanogenMod versions. This can be achieved by running the [repo.py](python/repo.py) script. This script will create a csv file for each pair of Android and CyanogenMod version, containing a list of repositories and their AOSP and CyanogenMod URLs. These files will be used as the input of the Java Project.
 
+The AOSP versions and their corresponding CyanogenMod versions are hardcoded in this script. This information was gathered from various posts from CyanogenMod's blog. Their website is not accesible anymore, hence we used the Wayback Machine:
+- [CM10.2](https://web.archive.org/web/20140215032504/http://www.cyanogenmod.org/blog/cm-10-2-1-maintenance-release)
+- [CM11.0](https://web.archive.org/web/20161224204349/https://www.cyanogenmod.org/blog/cm-10-2-1-maintenance-release)
+- [CM12.1](https://web.archive.org/web/20161224201849/https://www.cyanogenmod.org/blog/android-security-bulletin-october-5th-update)
+- [CM13.0](https://web.archive.org/web/20161224201848/https://www.cyanogenmod.org/blog/cm-13-0-release-1)
+- [CM14.1](https://web.archive.org/web/20161224202317/https://www.cyanogenmod.org/blog/cm14-is-landing)
+
 You can find the csv files we used for our ICSE 2018 paper submission [here](https://github.com/ualberta-se/icse-2018-mehran-results/blob/master/subsystem_names).
 
 ### 2. The Java script
