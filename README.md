@@ -71,5 +71,5 @@ Some result tables belong to non-Java repositories and should be purged. In orde
 [process_results_charts.py](python/process_results_charts.py) can be used for aggregating csv files and creating csv files sutibale for drawing plots. Like the previous script, [process_results_charts.py](python/process_results_charts.py) expects the table csv files to be in results folder in current path. 
 
 ## Team
-- [Mehran Mahmoudi](https://webapps.cs.ualberta.ca/profile/) (Main contact)
-- [Sarah Nadi](http://www.sarahnadi.org)
+- [Mehran Mahmoudi](https://webapps.cs.ualberta.ca/profile/), University of Alberta (Main contact)
+- [Sarah Nadi](http://www.sarahnadi.org), University of Alberta
