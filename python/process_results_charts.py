@@ -20,18 +20,30 @@ comparison_scenario_short_names = {'android-4.2_r1,android-4.3_r1,cm-10.1': 'CS1
                                    'android-6.0.0_r1,android-7.0.0_r1,cm-13.0': 'CS6',
                                    'android-7.0.0_r1,android-7.1.0_r1,cm-14.0': 'CS7'}
 
-change_types = ['identical', 'refactored', 'argument', 'body', 'deleted']
+change_types = ['identical',
+                'refactored_move',
+                'refactored_rename',
+                'refactored_inline',
+                'refactored_extract',
+                'argument_rename',
+                'argument_reorder',
+                'argument_add',
+                'argument_remove',
+                'argument_type_change',
+                'argument_remove',
+                'body',
+                'deleted']
 
 
 def is_right_format(lines):
-    if len(lines) != 7:
+    if len(lines) != 14:
         return False
 
     if len(lines[0].split(',')) != 3:
         return False
 
-    for i in range(1, 6):
-        if len(lines[i].split(',')) != 6:
+    for i in range(1, 13):
+        if len(lines[i].split(',')) != 13:
             return False
 
     return True

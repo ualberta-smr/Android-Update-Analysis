@@ -2,14 +2,14 @@ import os
 
 
 def is_right_format(lines):
-    if len(lines) != 7:
+    if len(lines) != 14:
         return False
 
     if len(lines[0].split(',')) != 3:
         return False
 
-    for i in range(1, 6):
-        if len(lines[i].split(',')) != 6:
+    for i in range(1, 13):
+        if len(lines[i].split(',')) != 13:
             return False
 
     return True
