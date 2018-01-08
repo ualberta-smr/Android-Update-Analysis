@@ -16,7 +16,7 @@ The AOSP versions and their corresponding CyanogenMod versions are hardcoded in 
 - [CM13.0](https://web.archive.org/web/20161224201848/https://www.cyanogenmod.org/blog/cm-13-0-release-1)
 - [CM14.0](https://web.archive.org/web/20161224202317/https://www.cyanogenmod.org/blog/cm14-is-landing)
 
-You can find the csv files we used for our arXiv.org submission [here](https://github.com/ualberta-se/arxiv-2018-mehran-results/blob/master/subsystem_names).
+You can find the csv files we used for our arXiv.org submission [here](https://github.com/ualberta-se/Android-Update-Analysis-Results/tree/arxiv-2018-submission/subsystem_names).
 
 ### 2. The Java script
 Using the csv files produced in the previous section and the path to SourcererCC you can run the Java script. In order to do so, you should copy the csv files in the same path as the Java file, and pass the path to the SourcerCC as an argument. You should run the main function in `ca.ualberta.mehran.androidevolution.repositories.RepositoryAutomation`
