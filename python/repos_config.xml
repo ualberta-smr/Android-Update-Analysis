@@ -34,4 +34,26 @@
                  aosp_remote_name="aosp"
                  proprietary_remote_name=""/>
     </project>
+    <project name="AOSPA" git_host="https://github.com">
+        <version branch_name="kitkat"
+                 manifest_url="https://raw.githubusercontent.com/AOSPA/manifest/kitkat/default.xml"
+                 aosp_remote_name=""
+                 proprietary_remote_name="github"/>
+        <version branch_name="lollipop"
+                 manifest_url="https://raw.githubusercontent.com/AOSPA/manifest/lollipop/default.xml"
+                 aosp_remote_name=""
+                 proprietary_remote_name="github"/>
+        <version branch_name="marshmallow"
+                 manifest_url="https://raw.githubusercontent.com/AOSPA/manifest/marshmallow/default.xml"
+                 aosp_remote_name=""
+                 proprietary_remote_name="aospa"/>
+        <version branch_name="nougat"
+                 manifest_url="https://raw.githubusercontent.com/AOSPA/manifest/nougat/default.xml"
+                 aosp_remote_name=""
+                 proprietary_remote_name="aospa"/>
+        <!--<version branch_name="oreo"-->
+                 <!--manifest_url="https://raw.githubusercontent.com/AOSPA/manifest/oreo/default.xml"-->
+                 <!--aosp_remote_name=""-->
+                 <!--proprietary_remote_name="aospa"/>-->
+    </project>
 </config>
