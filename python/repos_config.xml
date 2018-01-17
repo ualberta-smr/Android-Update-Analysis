@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<config version="1">
+    <project name="CM" git_host="https://github.com">
+        <version branch_name="cm-10.1"
+                 manifest_url="https://raw.githubusercontent.com/LineageOS/android/cm-10.1/default.xml"
+                 aosp_remote_name="aosp"
+                 proprietary_remote_name=""/>
+        <version branch_name="cm-10.2"
+                 manifest_url="https://raw.githubusercontent.com/LineageOS/android/cm-10.2/default.xml"
+                 aosp_remote_name="aosp"
+                 proprietary_remote_name=""/>
+        <version branch_name="cm-11.0"
+                 manifest_url="https://raw.githubusercontent.com/LineageOS/android/cm-11.0/default.xml"
+                 aosp_remote_name="aosp"
+                 proprietary_remote_name=""/>
+        <version branch_name="cm-12.0"
+                 manifest_url="https://raw.githubusercontent.com/LineageOS/android/cm-12.0/default.xml"
+                 aosp_remote_name="aosp"
+                 proprietary_remote_name=""/>
+        <version branch_name="cm-12.1"
+                 manifest_url="https://raw.githubusercontent.com/LineageOS/android/cm-12.1/default.xml"
+                 aosp_remote_name="aosp"
+                 proprietary_remote_name=""/>
+        <version branch_name="cm-13.0"
+                 manifest_url="https://raw.githubusercontent.com/LineageOS/android/cm-13.0/default.xml"
+                 aosp_remote_name="aosp"
+                 proprietary_remote_name=""/>
+        <version branch_name="cm-14.0"
+                 manifest_url="https://raw.githubusercontent.com/LineageOS/android/cm-14.0/default.xml"
+                 aosp_remote_name="aosp"
+                 proprietary_remote_name=""/>
+        <version branch_name="cm-14.1"
+                 manifest_url="https://raw.githubusercontent.com/LineageOS/android/cm-14.1/default.xml"
+                 aosp_remote_name="aosp"
+                 proprietary_remote_name=""/>
+    </project>
+</config>

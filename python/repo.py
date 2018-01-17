@@ -1,31 +1,9 @@
 import urllib.request
 import xml.etree.ElementTree as ET
+from urllib.parse import urlparse
 
-aosp_manifest = 'https://raw.githubusercontent.com/android/platform_manifest/{}/default.xml'
-
-project_specs_cm = {'manifest_url': 'https://raw.githubusercontent.com/LineageOS/android/{}/default.xml',
-                    'versions': ['cm-10.1',
-                                 'cm-10.2',
-                                 'cm-11.0',
-                                 'cm-12.0',
-                                 'cm-12.1',
-                                 'cm-13.0',
-                                 'cm-14.0',
-                                 'cm-14.1'
-                                 ]
-                    }
-
-project_specs_paranoid = {'manifest_url': 'https://raw.githubusercontent.com/AOSPA/manifest/{}/default.xml',
-                          'versions': ['cm-10.1',
-                                       'cm-10.2',
-                                       'cm-11.0',
-                                       'cm-12.0',
-                                       'cm-12.1',
-                                       'cm-13.0',
-                                       'cm-14.0',
-                                       'cm-14.1'
-                                       ]
-                          }
+aosp_manifest_url_base = 'https://raw.githubusercontent.com/android/platform_manifest/{}/default.xml'
+aosp_git_base = 'https://android.googlesource.com/'
 
 
 def read_file(path):
@@ -40,6 +18,88 @@ def download_url(url):
     return text
 
 
+def normalize_manifest_fetch_url(current_url, url):
+    if url[:2] == '..':
+        parsed_uri = urlparse(current_url)
+        domain = '{uri.scheme}://{uri.netloc}/'.format(uri=parsed_uri)
+        return domain + url[2:]
+    return url
+
+
+def get_target_repositories(manifest_text, target_remote=None, fetch_includes=True, manifest_url=None):
+    target_repositories = dict()
+    if manifest_text is None or manifest_text == '':
+        manifest_text = download_url(manifest_url)
+    root = ET.fromstring(manifest_text)
+
+    if fetch_includes and root.find('include') is not None:
+        for include in root.findall('include'):
+            included_manifest_url = manifest_url[:manifest_url.rfind('/') + 1] + include.get('name')
+            included_repos = get_target_repositories(None, target_remote, True, included_manifest_url)
+            target_repositories = {**target_repositories, **included_repos}
+
+    for repository in root.findall('project'):
+        if target_remote is None and 'remote' in repository.keys():
+            continue
+        if target_remote is not None:
+            if 'remote' not in repository.keys() or repository.get('remote') != target_remote:
+                continue
+        target_repositories[repository.get('path')] = dict()
+        for attr in repository.keys():
+            if attr != 'path':
+                target_repositories[repository.get('path')][attr] = repository.get(attr)
+    return target_repositories
+
+
+def get_version_manifest(manifest_url, project_git_host, aosp_remote_name=None, proprietary_remote_name=None):
+    version_manifest = dict()
+
+    manifest_text = download_url(manifest_url)
+    root = ET.fromstring(manifest_text)
+    remote_default = root.find('default')
+    all_remotes = dict()
+    for remote in root.findall('remote'):
+        all_remotes[remote.get('name')] = remote
+
+    if aosp_remote_name is None:
+        aosp_remote = remote_default
+    else:
+        aosp_remote = root.find('.//remote[@name="{}"]'.format(aosp_remote_name))
+    if proprietary_remote_name is None:
+        proprietary_remote = remote_default
+    else:
+        proprietary_remote = root.find('.//remote[@name="{}"]'.format(proprietary_remote_name))
+
+    aosp_branch = aosp_remote.get('revision')
+    if aosp_branch is None:
+        proprietary_aosp_repos = get_target_repositories(manifest_text, aosp_remote_name, False)
+        aosp_branch = proprietary_aosp_repos[list(proprietary_aosp_repos.keys())[0]]['revision']
+    # Strip branch name.
+    aosp_branch = aosp_branch[aosp_branch.rfind('/') + 1:]
+
+    aosp_manifest_url = aosp_manifest_url_base.format(aosp_branch)
+    aosp_repos = get_target_repositories(None, None, True, aosp_manifest_url)
+
+    proprietary_branch = proprietary_remote.get('revision')
+    # Strip branch name.
+    proprietary_branch = proprietary_branch[proprietary_branch.rfind('/') + 1:]
+
+    proprietary_base_git_url = proprietary_remote.get('fetch')
+    while proprietary_base_git_url is None:
+        proprietary_remote = all_remotes[proprietary_remote.get('remote')]
+        proprietary_base_git_url = proprietary_remote.get('fetch')
+    proprietary_base_git_url = normalize_manifest_fetch_url(project_git_host, proprietary_base_git_url)
+    proprietary_repos = get_target_repositories(manifest_text, proprietary_remote_name, True, manifest_url)
+
+    version_manifest['aosp_branch'] = aosp_branch
+    version_manifest['aosp_repos'] = aosp_repos
+    version_manifest['proprietary_branch'] = proprietary_branch
+    version_manifest['proprietary_base_git_url'] = proprietary_base_git_url
+    version_manifest['proprietary_repos'] = proprietary_repos
+
+    return version_manifest
+
+
 def parse_project_configs(config_path):
     config_text = read_file(config_path)
     config_root = ET.fromstring(config_text)
@@ -47,158 +107,80 @@ def parse_project_configs(config_path):
     for project in config_root.findall('project'):
         project_dict = dict()
         project_dict['name'] = project.get('name')
+        project_dict['git_host'] = project.get('git_host')
         project_versions = list()
         for version in project.findall('version'):
-            version_dict = dict()
-            version_dict['branch_name'] = version.get('branch_name')
-            version_dict['manifest_url'] = version.get('manifest_url')
-            if version.get('aosp_remote_name') != '':
-                version_dict['aosp_remote_name'] = version.get('aosp_remote_name')
-            if version.get('proprietary_remote_name') != '':
-                version_dict['proprietary_remote_name'] = version.get('proprietary_remote_name')
-            project_versions.append(version_dict)
+            version_config = dict()
+            version_config['branch_name'] = version.get('branch_name')
+            version_config['manifest_url'] = version.get('manifest_url')
+            version_config['aosp_remote_name'] = version.get('aosp_remote_name')
+            if version.get('aosp_remote_name').strip() == '':
+                version_config['aosp_remote_name'] = None
+            version_config['proprietary_remote_name'] = version.get('proprietary_remote_name')
+            if version.get('proprietary_remote_name').strip() == '':
+                version_config['proprietary_remote_name'] = None
+            project_versions.append(version_config)
         project_dict['versions'] = project_versions
         project_configs.append(project_dict)
     return project_configs
 
 
-def get_repositories(xml_string):
-    all_repositories = dict()
-    root = ET.fromstring(xml_string)
-    for project in root.findall('project'):
-        all_repositories[project.get('path')] = dict()
-        for attr in project.keys():
-            if attr != 'path':
-                all_repositories[project.get('path')][attr] = project.get(attr)
-    return all_repositories
-
-
-def generate_project_specs(project_configs):
-    project_specs = dict()
+def get_project_manifests(config_path):
+    project_configs = parse_project_configs(config_path)
+    project_manifests = dict()
     for project_config in project_configs:
-        project_specs
-
-    project_specs['versions_data'] = dict()
-    for version in project_specs['versions']:
-        manifest_xml_string = download_url(project_specs['manifest_url'].format(version))
-        root_element = ET.fromstring(manifest_xml_string)
-        base_aosp_url = root_element.find('.//remote[@name="aosp"]').get('fetch')
-        base_aosp_branch = root_element.find('.//remote[@name="aosp"]').get('revision')
-
-        default_branch = root_element.find('default').get('revision')
-        default_remote_name = root_element.find('default').get('remote')
-        default_remote_url = root_element.find('.//remote[@name="' + default_remote_name + '"]').get(
-            'fetch')  # fetch?
-
-        version_data = dict()
-        version_data['base_aosp'] = dict()
-        version_data['base_aosp']['url'] = base_aosp_url
-        version_data['base_aosp']['branch'] = base_aosp_branch
-        version_data['base_aosp']['manifest'] = aosp_manifest.format(base_aosp_branch)
-        version_data['base_aosp']['repositories'] = get_repositories(download_url(version_data['base_aosp']['manifest']))
-        version_data['default'] = dict()
-        version_data['default']['url'] = default_remote_url
-        version_data['default']['branch'] = default_branch
-        version_data['default']['manifest'] = project_specs['manifest_url'].format(version)
-        version_data['default']['repositories'] = get_repositories(manifest_xml_string)
-        project_specs['versions_data'][version] = version_data
+        project_name = project_config['name']
+        project_git_host = project_config['git_host']
+        project_manifest = dict()
+        for version_config in project_config['versions']:
+            version_manifest = get_version_manifest(version_config['manifest_url'], project_git_host,
+                                                    version_config['aosp_remote_name'],
+                                                    version_config['proprietary_remote_name'])
+            project_manifest[version_config['branch_name']] = version_manifest
+        project_manifests[project_name] = project_manifest
+    return project_configs, project_manifests
 
 
-def get_corresponding_projects(version_data):
-    aosp_repositories = version_data['base_aosp']['repositories']
-    project_repositories = version_data['default']['repositories']
-
-    corresponding_projects = list()
-    for project_repository_name, project_repository in project_repositories.items():
-        if 'remote' not in project_repository:
-            if project_repository_name in aosp_repositories:
-                project_git_url = version_data['default']['url'] + project_repository['name']
-                aosp_git_url = version_data['base_aosp']['url'] + aosp_repositories[project_repository_name]['name']
-                subsystem_name = project_repository_name.replace('/', '_')
-                if subsystem_name == 'frameworks_base':  # TODO: Does this need to be hardcoded?
-                    continue
-                corresponding_projects.append({'subsystem_name': subsystem_name,
-                                               'aosp_git_url': aosp_git_url,
-                                               'project_git_url': project_git_url})
-                # all_subsystems[cm_version][subsystem_name] = (aosp_git_url, cm_git_url)
-                # subsystems_names.add(subsystem_name)
-            else:
-                pass
-                # print("Couldn't match " + cm_project_name)
-                # with open('subsystems_' + cm_version + '.csv', 'w') as out:
-                #     for subsystem in subsystems:
-                #         out.write('{},{},{}'.format(*subsystem))
-                #         out.write('\n')
-    return corresponding_projects
+def extract_mutual_repos_single_version(version_manifest):
+    mutual_repos = set()
+    for proprietary_repo in version_manifest['proprietary_repos']:
+        if proprietary_repo in version_manifest['aosp_repos']:
+            mutual_repos.add(proprietary_repo)
+    return mutual_repos
 
 
-def generate_mutual_subsystems(project_specs):
-    populate_project_specs(project_specs)
-    all_subsystems = dict()
-    subsystems_names = set()
-    for project_version in project_specs['versions']:
-        all_subsystems[project_version] = dict()
-
-        corresponding_projects = get_corresponding_projects(project_specs['versions_data'][project_version])
-
-        for corresponding_project in corresponding_projects:
-            all_subsystems[project_version][corresponding_project['subsystem_name']] = (
-                corresponding_project['aosp_git_url'],
-                corresponding_project['project_git_url'])
-            subsystems_names.add(corresponding_project['subsystem_name'])
-
-    for project_version in all_subsystems:
-        print('# of subsystems in {}: {}'.format(project_version, len(all_subsystems[project_version])))
-
-    mutual_subsystems_between_all_versions = dict()
-    for subsystem_name in subsystems_names:
-        is_mutual = True
-        for project_version, project_subsystems in all_subsystems.items():
-            if subsystem_name not in project_subsystems:
-                is_mutual = False
-                break
-        if is_mutual:
-            mutual_subsystems_between_all_versions[subsystem_name] = all_subsystems['cm-14.0'][subsystem_name] # TODO: Hardcoded stuff
-
-    with open('subsystems_mutual.csv', 'w') as out:
-        for i in range(len(all_versions) - 1):
-            project_version = all_versions[i][0]
-            android_old_version = all_versions[i][1]
-            android_new_version = all_versions[i + 1][1]
-            out.write('versions:{},{},{}'.format(android_old_version, android_new_version, project_version))
-            out.write('\n')
-        for subsystem_name, (aosp_git_url, cm_git_url) in mutual_subsystems_between_all_versions.items():
-            out.write(
-                '{},{},{}'.format(subsystem_name, aosp_git_url, cm_git_url.replace('review.lineageos.org/CyanogenMod/'
-                                                                                   ,
-                                                                                   'review.lineageos.org/LineageOS/')))
-            out.write('\n')
+def extract_mutual_repos_all_versions(project_manifest):
+    mutual_repos_single_version_list = list()
+    for version_name, version_manifest in project_manifest.items():
+        mutual_repos_single_version_list.append(extract_mutual_repos_single_version(version_manifest))
+    return set.intersection(*mutual_repos_single_version_list)
 
 
-def generate_subsystems_for_version(cm_version_order):
-    cm_version = all_versions[cm_version_order][0]
-    android_old_version = all_versions[cm_version_order][1]
-    android_new_version = all_versions[cm_version_order + 1][1]
+def run(config_path):
+    project_configs, project_manifests = get_project_manifests(config_path)
+    for project_config in project_configs:
+        project_name = project_config['name']
+        project_manifest = project_manifests[project_name]
+        for version_index in range(len(project_config['versions'])):
+            version_name = project_config['versions'][version_index]['branch_name']
+            version_manifest = project_manifest[version_name]
+            aosp_branch = version_manifest['aosp_branch']
+            next_aosp_branch = 'PLEASE_REPLACE_ME_WITH_ANDROID_NEW_VERSION_FOR_THIS_COMPARISON_SCENARIO'
+            if version_index < len(project_config['versions']) - 1:
+                next_version_name = project_config['versions'][version_index + 1]['branch_name']
+                next_version_manifest = project_manifest[next_version_name]
+                next_aosp_branch = next_version_manifest['aosp_branch']
+            print('versions:{},{},{}'.format(aosp_branch, next_aosp_branch, version_name))
 
-    corresponding_projects = get_corresponding_projects(cm_version)
-
-    versions_name = '{}_{}_{}'.format(android_old_version, android_new_version, cm_version)
-    with open('subsystems_{}.csv'.format(versions_name), 'w') as out:
-        out.write('versions:{},{},{}'.format(android_old_version, android_new_version, cm_version))
-        out.write('\n')
-        for corresponding_project in corresponding_projects:
-            subsystem_name = corresponding_project['subsystem_name']
-            aosp_git_url = corresponding_project['aosp_git_url']
-            cm_git_url = corresponding_project['cm_git_url']
-            out.write(
-                '{},{},{}'.format(subsystem_name, aosp_git_url, cm_git_url.replace('review.lineageos.org/CyanogenMod/'
-                                                                                   ,
-                                                                                   'review.lineageos.org/LineageOS/')))
-            out.write('\n')
+        mutual_repos = extract_mutual_repos_all_versions(project_manifests[project_name])
+        for mutual_repo in mutual_repos:
+            # Choose the last version, since the git URL for identical AOSP repos throughout all versions is the same.
+            sample_version_manifest = project_manifest[project_config['versions'][len(project_config['versions']) - 1]['branch_name']]
+            aosp_git_url = aosp_git_base + sample_version_manifest['aosp_repos'][mutual_repo]['name']
+            proprietary_git_url = sample_version_manifest['proprietary_base_git_url'] +\
+                                  sample_version_manifest['proprietary_repos'][mutual_repo]['name']
+            repo_name = mutual_repo.replace('/', '_')
+            print('{},{},{}'.format(repo_name, aosp_git_url, proprietary_git_url))
 
 
-populate_project_specs(project_specs_cm)
-print(project_specs_cm)
-# generate_mutual_subsystems()
-# for i in range(len(all_versions) - 1):
-#     generate_subsystems_for_version(i)
+run('repos_config.xml')
