@@ -81,6 +81,9 @@ def get_version_manifest(manifest_url, project_git_host, aosp_remote_name=None, 
     aosp_repos = get_target_repositories(None, None, True, aosp_manifest_url)
 
     proprietary_branch = proprietary_remote.get('revision')
+    if proprietary_branch is None:
+        proprietary_repos = get_target_repositories(manifest_text, proprietary_remote_name, False)
+        proprietary_branch = proprietary_repos[list(proprietary_repos.keys())[0]]['revision']
     # Strip branch name.
     proprietary_branch = proprietary_branch[proprietary_branch.rfind('/') + 1:]
 
