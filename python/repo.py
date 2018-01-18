@@ -1,4 +1,5 @@
 import urllib.request
+import os
 import xml.etree.ElementTree as ET
 from urllib.parse import urlparse
 
@@ -159,12 +160,27 @@ def extract_mutual_repos_all_versions(project_manifest):
     return set.intersection(*mutual_repos_single_version_list)
 
 
+def get_first_release_for_aosp_branch(aosp_branch):
+    return aosp_branch[:aosp_branch.rfind('_')] + '_r1'
+
+
+def write_file(content, path):
+    if '/' in path:
+        directory = path[:path.rfind('/')]
+        if not os.path.exists(directory):
+            os.makedirs(directory)
+    with open(path, 'w+') as file:
+        file.write(content)
+
+
 def run(config_path):
     project_configs, project_manifests = get_project_manifests(config_path)
     for project_config in project_configs:
         project_name = project_config['name']
         project_manifest = project_manifests[project_name]
+
         for version_index in range(len(project_config['versions'])):
+            output = ''
             version_name = project_config['versions'][version_index]['branch_name']
             version_manifest = project_manifest[version_name]
             aosp_branch = version_manifest['aosp_branch']
@@ -172,18 +188,20 @@ def run(config_path):
             if version_index < len(project_config['versions']) - 1:
                 next_version_name = project_config['versions'][version_index + 1]['branch_name']
                 next_version_manifest = project_manifest[next_version_name]
-                next_aosp_branch = next_version_manifest['aosp_branch']
-            print('versions:{},{},{}'.format(aosp_branch, next_aosp_branch, version_name))
+                next_aosp_branch = get_first_release_for_aosp_branch(next_version_manifest['aosp_branch'])
 
-        mutual_repos = extract_mutual_repos_all_versions(project_manifests[project_name])
-        for mutual_repo in mutual_repos:
-            # Choose the last version, since the git URL for identical AOSP repos throughout all versions is the same.
-            sample_version_manifest = project_manifest[project_config['versions'][len(project_config['versions']) - 1]['branch_name']]
-            aosp_git_url = aosp_git_base + sample_version_manifest['aosp_repos'][mutual_repo]['name']
-            proprietary_git_url = sample_version_manifest['proprietary_base_git_url'] +\
-                                  sample_version_manifest['proprietary_repos'][mutual_repo]['name']
-            repo_name = mutual_repo.replace('/', '_')
-            print('{},{},{}'.format(repo_name, aosp_git_url, proprietary_git_url))
+            output += 'versions:{},{},{}'.format(aosp_branch, next_aosp_branch, version_name)
+            output += '\n'
+            mutual_repos = extract_mutual_repos_single_version(version_manifest)
+
+            for mutual_repo in mutual_repos:
+                aosp_git_url = aosp_git_base + version_manifest['aosp_repos'][mutual_repo]['name']
+                proprietary_git_url = version_manifest['proprietary_base_git_url'] + \
+                                      version_manifest['proprietary_repos'][mutual_repo]['name']
+                repo_name = mutual_repo.replace('/', '_')
+                output += '{},{},{}'.format(repo_name, aosp_git_url, proprietary_git_url)
+                output += '\n'
+            write_file(output, '{}/{}_{}_{}'.format(project_name, aosp_branch, next_aosp_branch, version_name))
 
 
 run('repos_config.xml')
