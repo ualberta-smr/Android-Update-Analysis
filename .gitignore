@@ -3,6 +3,7 @@
 */.idea/
 */*.iml
 .idea/
+java/input/
 java/out/
 java/output/
 *.csv

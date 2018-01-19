@@ -24,6 +24,8 @@ def normalize_manifest_fetch_url(current_url, url):
         parsed_uri = urlparse(current_url)
         domain = '{uri.scheme}://{uri.netloc}/'.format(uri=parsed_uri)
         return domain + url[2:]
+    if url[-1:] != '/':
+        url = url + '/'
     return url
 
 
@@ -201,7 +203,7 @@ def run(config_path):
                 repo_name = mutual_repo.replace('/', '_')
                 output += '{},{},{}'.format(repo_name, aosp_git_url, proprietary_git_url)
                 output += '\n'
-            write_file(output, '{}/{}_{}_{}'.format(project_name, aosp_branch, next_aosp_branch, version_name))
+            write_file(output, '{}/{}_{}_{}.csv'.format(project_name, aosp_branch, next_aosp_branch, version_name))
 
 
 run('repos_config.xml')
