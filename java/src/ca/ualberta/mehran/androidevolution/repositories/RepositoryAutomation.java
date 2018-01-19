@@ -69,84 +69,6 @@ public class RepositoryAutomation {
             prepareForAnalysis(projectName, subsystems, sourcererCCPath);
         }
 
-
-//        // All CSV files in the current path
-//        File[] versionAndRepositoryFiles = getVersionAndRepositoryFiles();
-//
-//        new File(OUTPUT_PATH).mkdir();
-//
-//        for (File versionAndRepositoryFile : versionAndRepositoryFiles) {
-//            if (!isValidInputCsvFile(versionAndRepositoryFile)) continue;
-//
-//            List<PairedRepository> repositories = new ArrayList<>();
-//            List<String> versions = new ArrayList<>();
-//            readInputCsvFile(versionAndRepositoryFile, repositories, versions);
-//
-//            EvolutionAnalyser evolutionAnalyser = new EvolutionAnalyser();
-//
-//            for (PairedRepository repository : repositories) {
-//                File repositoryDir = new File(OUTPUT_PATH, repository.name);
-//                repositoryDir.mkdir();
-//
-//                String androidRawFolderName = "android_raw";
-//                String proprietaryRawFolderName = "proprietary_raw";
-//                gitClone(repository.androidRepositoryURL, repositoryDir.getAbsolutePath(), androidRawFolderName);
-//                gitClone(repository.proprietaryRepositoryURL, repositoryDir.getAbsolutePath(), proprietaryRawFolderName);
-//
-//                File androidRawFolder = new File(repositoryDir, androidRawFolderName);
-//                File proprietaryRawFolder = new File(repositoryDir, proprietaryRawFolderName);
-//
-//                for (String comparisonPath : repository.subsystemPaths) {
-//                    for (int i = 0; i < versions.size(); i++) {
-//                        String androidBaseVersion = versions.get(i).split(",")[0];
-//                        String androidNewVersion = versions.get(i).split(",")[1];
-//                        String proprietaryVersion = versions.get(i).split(",")[2];
-//
-//                        String analysisPrefix = comparisonPath.equals("src") ? repository.name : comparisonPath.replace("/", "_");
-//                        String analysisName = analysisPrefix + "_" + androidBaseVersion + "_" + androidNewVersion + "_" + proprietaryVersion;
-//                        log("Doing " + analysisName);
-//
-//                        ComparisionFolder androidOldNew = new ComparisionFolder(repositoryDir.getAbsolutePath(), androidBaseVersion, androidNewVersion);
-//                        ComparisionFolder androidOldProprietary = new ComparisionFolder(repositoryDir.getAbsolutePath(), androidBaseVersion, proprietaryVersion);
-//
-//                        if (!gitChangeBranch(androidRawFolder.getAbsolutePath(), androidBaseVersion)) continue;
-//                        File androidSrcFolder = new File(androidRawFolder, comparisonPath);
-//                        if (!androidSrcFolder.exists()) {
-//                            log("No " + comparisonPath + " folder for " + androidRawFolder.getAbsolutePath());
-//                            continue;
-//                        }
-//                        copyFolder(androidRawFolder.getAbsolutePath(), comparisonPath, androidOldNew.getOldVersionPath() + "/");
-//                        copyFolder(androidRawFolder.getAbsolutePath(), comparisonPath, androidOldProprietary.getOldVersionPath() + "/");
-//
-//                        if (!gitChangeBranch(androidRawFolder.getAbsolutePath(), androidNewVersion)) continue;
-//                        androidSrcFolder = new File(androidRawFolder, comparisonPath);
-//                        if (!androidSrcFolder.exists()) {
-//                            log("No " + comparisonPath + " folder for " + androidRawFolder.getAbsolutePath());
-//                            continue;
-//                        }
-//                        copyFolder(androidRawFolder.getAbsolutePath(), comparisonPath, androidOldNew.getNewVersionPath() + "/");
-//
-//                        if (!gitChangeBranch(proprietaryRawFolder.getAbsolutePath(), proprietaryVersion)) continue;
-//                        File proprietarySrcFolder = new File(proprietaryRawFolder, comparisonPath);
-//                        if (!proprietarySrcFolder.exists()) {
-//                            log("No " + comparisonPath + " folder for " + proprietarySrcFolder.getAbsolutePath());
-//                            continue;
-//                        }
-//                        copyFolder(proprietaryRawFolder.getAbsolutePath(), comparisonPath, androidOldProprietary.getNewVersionPath() + "/");
-//
-//                        try {
-//                            evolutionAnalyser.run(analysisName, androidOldNew.getPath(), androidOldNew.getOldVersionPath(), androidOldNew.getNewVersionPath(),
-//                                    androidOldProprietary.getPath(), androidOldProprietary.getOldVersionPath(), androidOldProprietary.getNewVersionPath(), sourcererCCPath, OUTPUT_PATH);
-//                        } catch (Throwable e) {
-//                            e.printStackTrace();
-//                        }
-////                        removeFolder(new File(androidOldNew.getPath()));
-////                        removeFolder(new File(androidOldProprietary.getPath()));
-//                    }
-//                }
-//            }
-//        }
-
     }
 
     private void prepareForAnalysis(String projectName, List<Subsystem> subsystems, String sourcererCCPath) {
@@ -199,12 +121,6 @@ public class RepositoryAutomation {
                     String[] cells = line.split(",");
                     if (cells.length >= 3) {
                         PairedRepository pairedRepository = new PairedRepository(cells[0], cells[1], cells[2]);
-//                        if (cells.length > 3) {
-//                            pairedRepository.subsystemPaths.clear();
-//                            for (int j = 3; j < cells.length; j++) {
-//                                pairedRepository.addSubsystemPath(cells[j]);
-//                            }
-//                        }
                         pairedRepositories.add(pairedRepository);
                     }
                 }
@@ -308,14 +224,6 @@ public class RepositoryAutomation {
                 return s.equalsIgnoreCase("AndroidManifest.xml");
             }
         }, null);
-//        if (xmlFiles != null) {
-//            File[] results = new File[xmlFiles.size()];
-//            Iterator<File> iterator = xmlFiles.iterator();
-//            for (int i = 0; i < xmlFiles.size() && iterator.hasNext(); i++) {
-//                results[i] = iterator.next();
-//            }
-//            return results;
-//        }
         Set<String> result = new HashSet<>();
         for (File xmlFile : xmlFiles) {
             String absolutePath = xmlFile.getAbsolutePath();
@@ -335,13 +243,11 @@ public class RepositoryAutomation {
     private void copyFolder(String srcPath, String dest) {
         File dirSrc = new File(srcPath);
         File dirDest = new File(dest);
-//        removeFolder(dirDest);
         try {
             FileUtils.copyDirectory(dirSrc, dirDest);
         } catch (Throwable e) {
             e.printStackTrace();
         }
-//        runSystemCommand(srcPath, false, "cp", "-r", fileName, dest);
     }
 
     private void gitClone(String url, String path, String folderName) {
@@ -352,26 +258,6 @@ public class RepositoryAutomation {
         String result = runSystemCommand(path, false, "git", "checkout", branchName);
         return !result.toLowerCase().contains("did not match any");
     }
-
-//    private String[] readFile(String path) {
-//        try {
-//            File file = new File(path);
-//            Scanner input = new Scanner(file);
-//            List<String> lines = new ArrayList<>();
-//            while (input.hasNextLine()) {
-//                lines.add(input.nextLine());
-//            }
-//            String[] result = new String[lines.size()];
-//            for (int i = 0; i < result.length; i++) {
-//                result[i] = lines.get(i);
-//            }
-//            input.close();
-//            return result;
-//        } catch (IOException e) {
-//            e.printStackTrace();
-//        }
-//        return new String[]{};
-//    }
 
     private class Subsystem {
         String name;
@@ -394,7 +280,7 @@ public class RepositoryAutomation {
         String newVersionName;
         String rootPath;
 
-        public ComparisionFolder(String rootPath, String oldVersionName, String newVersionName) {
+        ComparisionFolder(String rootPath, String oldVersionName, String newVersionName) {
             this.oldVersionName = oldVersionName;
             this.newVersionName = newVersionName;
             this.rootPath = rootPath;
@@ -421,11 +307,11 @@ public class RepositoryAutomation {
             return new File(rootPath, getName()).getAbsolutePath();
         }
 
-        public String getOldVersionPath() {
+        String getOldVersionPath() {
             return new File(getPath(), "old").getAbsolutePath();
         }
 
-        public String getNewVersionPath() {
+        String getNewVersionPath() {
             return new File(getPath(), "new").getAbsolutePath();
         }
     }
@@ -434,18 +320,13 @@ public class RepositoryAutomation {
         String name;
         String androidRepositoryURL;
         String proprietaryRepositoryURL;
-//        ArrayList<String> subsystemPaths;
 
-        public PairedRepository(String name, String androidRepositoryURL, String proprietaryRepositoryURL) {
+        PairedRepository(String name, String androidRepositoryURL, String proprietaryRepositoryURL) {
             this.name = name;
             this.androidRepositoryURL = androidRepositoryURL;
             this.proprietaryRepositoryURL = proprietaryRepositoryURL;
-//            subsystemPaths = new ArrayList<>();
         }
 
-//        public void addSubsystemPath(String path) {
-//            subsystemPaths.add(path);
-//        }
     }
 
     private class ComparisonVersions {
@@ -453,7 +334,7 @@ public class RepositoryAutomation {
         String androidNewVersion;
         String proprietaryVersion;
 
-        public ComparisonVersions(String inputCsvVersionLine) {
+        ComparisonVersions(String inputCsvVersionLine) {
             if (inputCsvVersionLine.startsWith(VERSION_LINE_PREFIX))
                 inputCsvVersionLine = inputCsvVersionLine.substring(VERSION_LINE_PREFIX.length());
             String[] versions = inputCsvVersionLine.split(",");
