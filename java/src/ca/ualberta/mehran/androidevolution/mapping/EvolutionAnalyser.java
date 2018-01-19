@@ -14,7 +14,7 @@ import java.util.*;
 
 public class EvolutionAnalyser {
 
-    private String mSourcererCCPath = "/Users/mehran/Android API/SourcererCC";
+    private String mSourcererCCPath;
 
 
 //    public static void main(String[] args) {

@@ -16,7 +16,7 @@ import static ca.ualberta.mehran.androidevolution.Utils.runSystemCommand;
 public class RepositoryAutomation {
 
 
-    private static final String SOURCERERCC_PATH = "/Users/mehran/Android API/SourcererCC";
+    private static final String SOURCERERCC_PATH = "/home/mehran/sourcerercc";
 
     private static final String OUTPUT_PATH = "output";
     private static final String CSV_INPUT_PATH = "input/csv";
