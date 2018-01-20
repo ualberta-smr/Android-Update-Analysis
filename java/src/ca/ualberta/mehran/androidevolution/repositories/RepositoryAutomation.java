@@ -1,6 +1,7 @@
 package ca.ualberta.mehran.androidevolution.repositories;
 
 
+import ca.ualberta.mehran.androidevolution.Utils;
 import ca.ualberta.mehran.androidevolution.mapping.EvolutionAnalyser;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.filefilter.IOFileFilter;
@@ -42,7 +43,9 @@ public class RepositoryAutomation {
             String projectName = projectInputCSVsDir.getName();
             File[] inputCsvFiles = getProjectInputCsvFiles(projectInputCSVsDir);
 
-            List<Subsystem> subsystems = new ArrayList<>();
+            List<Subsystem> allSubsystems = new ArrayList<>();
+            StringBuilder projectStats = new StringBuilder();
+            projectStats.append("Comparison versions,Number of subsystems\n");
 
             for (File inputCsvFile : inputCsvFiles) {
                 if (!isValidInputCsvFile(inputCsvFile)) continue;
@@ -51,7 +54,8 @@ public class RepositoryAutomation {
                 List<ComparisonVersions> versions = new ArrayList<>();
                 readInputCsvFile(inputCsvFile, pairedRepositories, versions);
 
-                for (ComparisonVersions comparisonVersions : versions) {
+                for (ComparisonVersions comparisonVersion : versions) {
+                    List<Subsystem> comparisonVersionSubsystems = new ArrayList<>();
                     for (PairedRepository pairedRepository : pairedRepositories) {
                         String repoPath = new File(REPOS_PATH, pairedRepository.name).getAbsolutePath();
                         File aospRepoPath = new File(repoPath, "aosp");
@@ -60,13 +64,16 @@ public class RepositoryAutomation {
                         proprietaryRepoPath.mkdirs();
 
                         checkoutRepository(pairedRepository, aospRepoPath, proprietaryRepoPath);
-                        List<Subsystem> repoSubsystems = getSubsystemsInRepository(pairedRepository.name, aospRepoPath, proprietaryRepoPath, comparisonVersions);
+                        List<Subsystem> repoSubsystems = getSubsystemsInRepository(pairedRepository.name, aospRepoPath, proprietaryRepoPath, comparisonVersion);
                         if (repoSubsystems == null) continue;
-                        subsystems.addAll(repoSubsystems);
+                        comparisonVersionSubsystems.addAll(repoSubsystems);
                     }
+                    projectStats.append(comparisonVersion + "," + comparisonVersionSubsystems.size() + "\n");
+                    allSubsystems.addAll(comparisonVersionSubsystems);
                 }
             }
-            prepareForAnalysis(projectName, subsystems, sourcererCCPath);
+            Utils.writeToFile(OUTPUT_PATH + "/subsystems_" + projectName +".txt", projectStats.toString());
+            prepareForAnalysis(projectName, allSubsystems, sourcererCCPath);
         }
 
     }
@@ -341,6 +348,11 @@ public class RepositoryAutomation {
             this.androidOldVersion = versions[0];
             this.androidNewVersion = versions[1];
             this.proprietaryVersion = versions[2];
+        }
+
+        @Override
+        public String toString() {
+            return androidOldVersion + "_" + androidNewVersion + "_" + proprietaryVersion;
         }
     }
 }

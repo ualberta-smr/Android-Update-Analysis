@@ -106,7 +106,11 @@ public class EvolutionAnalyser {
                     MethodMapping.Type.BODY_CHANGE_ONLY, MethodMapping.Type.NOT_FOUND};//,
 //                    MethodMapping.Type.ADDED};
 
-//            CSVUtils.writeLine(outputWriter, Arrays.asList(types));
+            List<String> typesString = new ArrayList<>();
+            for (MethodMapping.Type type : types) {
+                typesString.add(type.toString());
+            }
+            CSVUtils.writeLine(outputWriter, typesString);
             for (MethodMapping.Type type : types) {
                 Map<MethodMapping.Type, List<Integer>> thisTypeStats = stats.getOrDefault(type, new HashMap<>());
                 int total = 0;
@@ -127,6 +131,7 @@ public class EvolutionAnalyser {
                 catStats.add(String.valueOf(total));
                 CSVUtils.writeLine(outputWriter, catStats);
             }
+            CSVUtils.writeLine(outputWriter, Arrays.asList(new String[]{"New methods in new AOSP", "New methods in proprietary", "New methods in both"}));
             Map<MethodMapping.Type, List<Integer>> addedStats = stats.get(MethodMapping.Type.ADDED);
             int identicalMutualNewMethods = addedStats.get(MethodMapping.Type.ADDED).get(1);
             CSVUtils.writeLine(outputWriter, Arrays.asList(String.valueOf(addedStats.get(MethodMapping.Type.NOT_FOUND).get(0)), // New methods in new project

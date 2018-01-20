@@ -1,9 +1,6 @@
 package ca.ualberta.mehran.androidevolution;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStreamReader;
+import java.io.*;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -75,6 +72,26 @@ public class Utils {
         } catch (NullPointerException e) {
             e.printStackTrace();
             return lines;
+        }
+    }
+
+    public static void writeToFile(String path, String content) {
+        writeToFile(new File(path), content);
+    }
+
+
+    public static void writeToFile(File file, String content) {
+        try {
+            if (!file.exists()) {
+                file.getParentFile().mkdirs();
+                file.createNewFile();
+            }
+            PrintWriter writer = new PrintWriter(file);
+            writer.print(content);
+            writer.flush();
+            writer.close();
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 }
