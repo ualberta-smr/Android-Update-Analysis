@@ -53,10 +53,8 @@ public class RefactoringMinerHelper extends MappingDiscoverer {
                         projectNewUniqueSignatureMap.containsKey(generateUniqueSignature(destMethodUML))) {
                     MethodModel oldMethod = projectOldUniqueSignatureMap.get(generateUniqueSignature(originalMethodUML));
                     MethodModel newMethod = projectNewUniqueSignatureMap.get(generateUniqueSignature(destMethodUML));
-                    MethodMapping.Type mappingType = getMappingType(refactoring);
-                    if (!projectOldDiscoveredMethods.contains(oldMethod) && !projectNewDiscoveredMethods.contains(newMethod)
-                            && mappingType != null) {
-                        result.put(oldMethod, new MethodMapping(newMethod, mappingType));
+                    if (!projectOldDiscoveredMethods.contains(oldMethod) && !projectNewDiscoveredMethods.contains(newMethod)) {
+                        result.put(oldMethod, new MethodMapping(newMethod, MethodMapping.Type.REFACTORED));
                     }
                 } else {
                     System.out.println("Could not find a method in RefactoringMiner:");
@@ -92,19 +90,6 @@ public class RefactoringMinerHelper extends MappingDiscoverer {
         }
         onFinish();
         return result;
-    }
-
-    private MethodMapping.Type getMappingType(Refactoring refactoring) {
-        if (refactoring instanceof MoveOperationRefactoring) {
-            return MethodMapping.Type.REFACTORED_MOVE;
-        } else if (refactoring instanceof RenameOperationRefactoring) {
-            return MethodMapping.Type.REFACTORED_RENAME;
-        } else if (refactoring instanceof ExtractOperationRefactoring || refactoring instanceof ExtractAndMoveOperationRefactoring) {
-            return MethodMapping.Type.REFACTORED_EXTRACT;
-        } else if (refactoring instanceof InlineOperationRefactoring) {
-            return MethodMapping.Type.REFACTORED_INLINE;
-        }
-        return null;
     }
 
     private <T> Map<String, T> convertDollarSignToDot(Map<String, T> map) {

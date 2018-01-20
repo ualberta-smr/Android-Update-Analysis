@@ -47,7 +47,11 @@ public class ChangeDistillerHelper extends MappingDiscoverer {
                                 projectOldMethodByFilePath.containsKey(oldFilePath)) {
                             MethodModel[] methods = fetchOriginalAndDestinationMethods(change,
                                     oldFilePath, projectOldMethodByFilePath.get(oldFilePath), projectNewNoReturnTypeSignatureMap);
-                            MethodMapping.Type mappingType = getMappingType(change.getChangeType());
+                            MethodMapping.Type mappingType = MethodMapping.Type.ARGUMENTS_CHANGE;
+                            if (change.getChangeType() == ChangeType.PARAMETER_RENAMING ||
+                                    change.getChangeType() == ChangeType.PARAMETER_ORDERING_CHANGE) {
+                                mappingType = MethodMapping.Type.REFACTORED;
+                            }
                             if (methods != null && methods.length == 2) {
                                 MethodModel oldMethod = methods[0];
                                 MethodModel newMethod = methods[1];
@@ -74,22 +78,6 @@ public class ChangeDistillerHelper extends MappingDiscoverer {
         }
         onFinish();
         return result;
-    }
-
-    private MethodMapping.Type getMappingType(ChangeType changeType) {
-        switch (changeType) {
-            case PARAMETER_DELETE:
-                return MethodMapping.Type.ARGUMENTS_CHANGE_REMOVE;
-            case PARAMETER_INSERT:
-                return MethodMapping.Type.ARGUMENTS_CHANGE_ADD;
-            case PARAMETER_RENAMING:
-                return MethodMapping.Type.REFACTORED_ARGUMENTS_RENAME;
-            case PARAMETER_ORDERING_CHANGE:
-                return MethodMapping.Type.REFACTORED_ARGUMENTS_REORDER;
-            case PARAMETER_TYPE_CHANGE:
-                return MethodMapping.Type.ARGUMENTS_CHANGE_TYPE_CHANGE;
-        }
-        return null;
     }
 
     private Map<String, MethodModel> getMappingByChangeDistillerStyle(Collection<MethodModel> methods) {
