@@ -248,6 +248,44 @@ def print_trends_plot_data(results):
                     print('{},{},{},{},{},{}'.format(short_comparison_name, change_types[row], change_types[column],
                                                      proportion, aggregated_table[row, column],
                                                      colors[determine_table_color(row, column)]))
+
+
+def transform_into_interval(minimum, maximum, value):
+    if minimum > maximum:
+        value = 1 - value
+        minimum, maximum = maximum, minimum
+    return minimum + value * (maximum - minimum)
+
+
+def get_grayscale_hex(intensity):
+    return (3 * hex(int(intensity))[2:])
+
+
+def print_heat_map(results):
+    for project in results.keys():
+        print(project + ":")
+        mo_changeset_tables = None
+        for subsystem_result in results[project]:
+            if mo_changeset_tables is None:
+                mo_changeset_tables = np.matrix(subsystem_result['table'])[:, 1:-1]
+            else:
+                mo_changeset_tables += np.matrix(subsystem_result['table'])[:, 1:-1]
+
+        mo_changes = mo_changeset_tables.sum()
+        max_color = 0x33
+        min_color = 0xff
+
+        for row in range(mo_changeset_tables.shape[0]):
+            output_row = str()
+            for column in range(mo_changeset_tables.shape[1]):
+                proportion = mo_changeset_tables[row, column] / mo_changes
+                text_color = determine_table_color(row, column)
+                back_color = get_grayscale_hex(transform_into_interval(min_color, max_color, proportion))
+                output_row += '\cellcolor[HTML]{' + back_color +'}' + str(round(proportion * 100, 2)) + '\% & '
+            output_row = output_row[:-2] + '\\\\'
+            print(output_row)
+
+
 #
 #
 #
@@ -371,7 +409,8 @@ def run():
 
     # print_colours_stat(results)
     # print_bar_chart_data(results)
-    print_trends_plot_data(results)
+    # print_trends_plot_data(results)
+    print_heat_map(results)
     # extract_most_changed_subsystems(results)
     # print_subsystems_stats(results)
     # print_box_plot_data(results)
