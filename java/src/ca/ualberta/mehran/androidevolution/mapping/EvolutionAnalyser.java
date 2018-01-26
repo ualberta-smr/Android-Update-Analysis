@@ -16,35 +16,6 @@ public class EvolutionAnalyser {
 
     private String mSourcererCCPath;
 
-
-//    public static void main(String[] args) {
-//
-//        String subsystemName = "contacts_a6_a7_cm13";
-//
-//        String pathAndroidOldAndNew = "/Users/mehran/Library/Mobile Documents/com~apple~CloudDocs/Android API/Contacts/android6.0_android7.0";
-//        String pathAndroidOldAndNew_old = "/Users/mehran/Library/Mobile Documents/com~apple~CloudDocs/Android API/Contacts/android6.0_android7.0/1.0.0";
-//        String pathAndroidOldAndNew_new = "/Users/mehran/Library/Mobile Documents/com~apple~CloudDocs/Android API/Contacts/android6.0_android7.0/2.0.0";
-//
-//        String pathAndroidOldAndModified = "/Users/mehran/Library/Mobile Documents/com~apple~CloudDocs/Android API/Contacts/android6.0_cm13.0";
-//        String pathAndroidOldAndModified_old = "/Users/mehran/Library/Mobile Documents/com~apple~CloudDocs/Android API/Contacts/android6.0_cm13.0/1.0.0";
-//        String pathAndroidOldAndModified_new = "/Users/mehran/Library/Mobile Documents/com~apple~CloudDocs/Android API/Contacts/android6.0_cm13.0/2.0.0";
-//
-//        String sourcererCCPath = "/Users/mehran/Android API/SourcererCC";
-//        if (args.length == 8) {
-//            subsystemName = args[0];
-//            pathAndroidOldAndNew = args[1];
-//            pathAndroidOldAndNew_old = args[2];
-//            pathAndroidOldAndNew_new = args[3];
-//            pathAndroidOldAndModified = args[4];
-//            pathAndroidOldAndModified_old = args[5];
-//            pathAndroidOldAndModified_new = args[6];
-//            sourcererCCPath = args[7];
-//        }
-//
-//        new EvolutionAnalyser().run(subsystemName, pathAndroidOldAndNew, pathAndroidOldAndNew_old, pathAndroidOldAndNew_new,
-//                pathAndroidOldAndModified, pathAndroidOldAndModified_old, pathAndroidOldAndModified_new, sourcererCCPath, "");
-//    }
-
     public void run(String subsystemName,
                     String pathAndroidOldAndNew,
                     String pathAndroidOldAndNew_old,

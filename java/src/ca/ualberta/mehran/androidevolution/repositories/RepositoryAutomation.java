@@ -10,8 +10,13 @@ import java.io.File;
 import java.io.FileFilter;
 import java.io.FilenameFilter;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.*;
+import java.util.function.Predicate;
 
+import static ca.ualberta.mehran.androidevolution.Utils.log;
 import static ca.ualberta.mehran.androidevolution.Utils.runSystemCommand;
 
 public class RepositoryAutomation {
@@ -57,6 +62,7 @@ public class RepositoryAutomation {
                 for (ComparisonVersions comparisonVersion : versions) {
                     List<Subsystem> comparisonVersionSubsystems = new ArrayList<>();
                     for (PairedRepository pairedRepository : pairedRepositories) {
+                        log("Initializing " + pairedRepository + "...");
                         String repoPath = new File(REPOS_PATH, pairedRepository.name).getAbsolutePath();
                         File aospRepoPath = new File(repoPath, "aosp");
                         File proprietaryRepoPath = new File(repoPath, projectName);
@@ -72,7 +78,7 @@ public class RepositoryAutomation {
                     allSubsystems.addAll(comparisonVersionSubsystems);
                 }
             }
-            Utils.writeToFile(OUTPUT_PATH + "/subsystems_" + projectName +".txt", projectStats.toString());
+            Utils.writeToFile(OUTPUT_PATH + "/subsystems_" + projectName + ".txt", projectStats.toString());
             prepareForAnalysis(projectName, allSubsystems, sourcererCCPath);
         }
 
@@ -84,6 +90,7 @@ public class RepositoryAutomation {
         String outputPath = new File(OUTPUT_PATH, projectName).getAbsolutePath();
 
         for (Subsystem subsystem : subsystems) {
+            log("Preparing " + subsystem + "...");
             // TODO: Pass the repo's path via subsystem. This is hacky.
             String repoPath = new File(subsystem.aospRepoPath).getParentFile().getAbsolutePath();
             String analysisName = subsystem.name + "_" +
@@ -108,10 +115,18 @@ public class RepositoryAutomation {
                 continue;
             copyFolder(new File(subsystem.proprietaryRepoPath, subsystem.relativePath).getAbsolutePath(), comparisionFolderAoProprietary.getNewVersionPath());
 
-            evolutionAnalyser.run(analysisName, comparisionFolderAoAn.getPath(),
-                    comparisionFolderAoAn.getOldVersionPath(), comparisionFolderAoAn.getNewVersionPath(),
-                    comparisionFolderAoProprietary.getPath(), comparisionFolderAoProprietary.getOldVersionPath(),
-                    comparisionFolderAoProprietary.getNewVersionPath(), sourcererCCPath, outputPath);
+            try {
+                evolutionAnalyser.run(analysisName, comparisionFolderAoAn.getPath(),
+                        comparisionFolderAoAn.getOldVersionPath(), comparisionFolderAoAn.getNewVersionPath(),
+                        comparisionFolderAoProprietary.getPath(), comparisionFolderAoProprietary.getOldVersionPath(),
+                        comparisionFolderAoProprietary.getNewVersionPath(), sourcererCCPath, outputPath);
+            } catch (Throwable e) {
+                log("An exception occurred while analyzing " + analysisName + ": " + e.getMessage());
+                for (StackTraceElement stackTraceElement : e.getStackTrace()) {
+                    log(stackTraceElement.toString());
+                }
+                e.printStackTrace();
+            }
         }
     }
 
@@ -204,7 +219,11 @@ public class RepositoryAutomation {
                 if (subsystemName.equalsIgnoreCase("aosp")) subsystemName = repoName;
                 String subsystemRelativePath = aospOldManifestFile.getParentFile().getAbsolutePath().substring(aospRepoPath.getAbsolutePath().length());
 
-                // TODO: Filter out tests and examples
+                if (subsystemRelativePath.contains("/test") ||
+                        subsystemRelativePath.contains("Test") ||
+                        subsystemRelativePath.toLowerCase().contains("example")) {
+                    continue;
+                }
                 // Look for src folder
                 subsystemRelativePath += "/src";
                 File srcFodlerAosp = new File(aospRepoPath, subsystemRelativePath);
@@ -220,21 +239,13 @@ public class RepositoryAutomation {
     }
 
     private Collection<String> getAndroidManifestFiles(File path) {
-        Collection<File> xmlFiles = FileUtils.listFiles(path, new IOFileFilter() {
-            @Override
-            public boolean accept(File file) {
-                return file.getName().equalsIgnoreCase("AndroidManifest.xml");
-            }
-
-            @Override
-            public boolean accept(File file, String s) {
-                return s.equalsIgnoreCase("AndroidManifest.xml");
-            }
-        }, null);
         Set<String> result = new HashSet<>();
-        for (File xmlFile : xmlFiles) {
-            String absolutePath = xmlFile.getAbsolutePath();
-            result.add(absolutePath.substring(path.getAbsolutePath().length(), absolutePath.length()));
+        try {
+            Files.walk(Paths.get(path.getAbsolutePath()))
+                    .filter(pathToFile -> pathToFile.endsWith("AndroidManifest.xml"))
+                    .forEach(t -> result.add(t.toString().substring(path.getAbsolutePath().length())));
+        } catch (IOException e) {
+            e.printStackTrace();
         }
         return result;
     }
@@ -279,6 +290,11 @@ public class RepositoryAutomation {
             this.aospRepoPath = aospRepoPath;
             this.proprietaryRepoPath = proprietaryRepoPath;
             this.comparisonVersions = comparisonVersions;
+        }
+
+        @Override
+        public String toString() {
+            return name + " (" + relativePath + ") - " + comparisonVersions;
         }
     }
 
@@ -334,6 +350,10 @@ public class RepositoryAutomation {
             this.proprietaryRepositoryURL = proprietaryRepositoryURL;
         }
 
+        @Override
+        public String toString() {
+            return name;
+        }
     }
 
     private class ComparisonVersions {
