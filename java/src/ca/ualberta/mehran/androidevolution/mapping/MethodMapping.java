@@ -55,6 +55,11 @@ public class MethodMapping {
         return super.equals(obj);
     }
 
+    @Override
+    public String toString() {
+        return " -> " + getDestinationMethod() + "    " + getType().toString();
+    }
+
     /**
      * IDENTICAL: No change in method's package, class, name, arguments and body. (SourcererCC)
      * REFACTORED: No change in method's arguments and body. Changes in method's package, class and name. (RefactoringMiner)

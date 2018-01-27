@@ -258,7 +258,7 @@ def transform_into_interval(minimum, maximum, value):
 
 
 def get_grayscale_hex(intensity):
-    return (3 * hex(int(intensity))[2:])
+    return (3 * hex(int(intensity))[2:]).upper()
 
 
 def print_heat_map(results):
@@ -276,7 +276,7 @@ def print_heat_map(results):
         min_color = 0xff
 
         for row in range(mo_changeset_tables.shape[0]):
-            output_row = str()
+            output_row = change_types[row].replace('_', '\\_') + " & "
             for column in range(mo_changeset_tables.shape[1]):
                 proportion = mo_changeset_tables[row, column] / mo_changes
                 text_color = determine_table_color(row, column)

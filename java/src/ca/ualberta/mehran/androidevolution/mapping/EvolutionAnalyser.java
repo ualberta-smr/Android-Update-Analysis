@@ -45,6 +45,12 @@ public class EvolutionAnalyser {
                 projectNewMethods,
                 projectModifiedMethods);
 
+
+//        randomSampleCategory(projectOldMethods,
+//                projectNewMethods,
+//                projectModifiedMethods,
+//                mappingAndroidOldNew,
+//                mappingAndroidOldModified, MethodMapping.Type.BODY_CHANGE_ONLY, MethodMapping.Type.REFACTORED_EXTRACT, 5);
         Map<MethodMapping.Type, Map<MethodMapping.Type, List<Integer>>> stats = generateIntersectionsOfMappings(projectOldMethods,
                 projectNewMethods,
                 projectModifiedMethods,
@@ -126,15 +132,15 @@ public class EvolutionAnalyser {
 //        Map<MethodMapping.Type, Collection<MethodModel>> mappingOldModifiedStats = categorizeMappingTypes(mappingAndroidOldModified);
 
         Map<MethodMapping.Type, Map<MethodMapping.Type, List<Integer>>> oldNewAndModifiedIntersectionMap = new HashMap<>();
-        for (MethodMapping.Type type : mappingOldNewStats.keySet()) {
-            Collection<String> thisTypeMethods = mappingOldNewStats.get(type);
+        for (MethodMapping.Type oldNewType : mappingOldNewStats.keySet()) {
+            Collection<String> thisTypeMethods = mappingOldNewStats.get(oldNewType);
             Map<MethodMapping.Type, Collection<String>> thisTypeMappingForModified = filterMethodMapping(mappingAndroidOldModified, thisTypeMethods);
 
             // Purge duplicate changes
             int purgedMutualMethods = 0;
-            if (type != MethodMapping.Type.IDENTICAL && thisTypeMappingForModified.containsKey(type)) {
+            if (oldNewType != MethodMapping.Type.IDENTICAL && thisTypeMappingForModified.containsKey(oldNewType)) {
                 Collection<String> genuineChangesMethodsIntersection = new HashSet<>();
-                for (String mutualOldMethod : thisTypeMappingForModified.get(type)) {
+                for (String mutualOldMethod : thisTypeMappingForModified.get(oldNewType)) {
                     MethodMapping oldNewMapping = mappingAndroidOldNew.get(mutualOldMethod);
                     MethodMapping oldManipulatedMapping = mappingAndroidOldModified.get(mutualOldMethod);
                     if (oldNewMapping != null && oldManipulatedMapping != null && oldNewMapping.equals(oldManipulatedMapping)) {
@@ -148,23 +154,23 @@ public class EvolutionAnalyser {
             }
 
             Map<MethodMapping.Type, List<Integer>> thisTypeStatsForModified = new HashMap<>();
-            for (MethodMapping.Type type1 : thisTypeMappingForModified.keySet()) {
+            for (MethodMapping.Type newModifiedType : thisTypeMappingForModified.keySet()) {
                 // Random sample
 //                if ((type == MethodMapping.Type.IDENTICAL || type == MethodMapping.Type.NOT_FOUND) && type1 == MethodMapping.Type.NOT_FOUND) {
 //                    randomSample(thisTypeMappingForModified.get(type1), 20, projectOldMethods, projectNewMethods,
 //                            projectModifiedMethods, mappingAndroidOldNew, mappingAndroidOldModified);
 //                }
-                int intersectionCount = thisTypeMappingForModified.get(type1).size();
-                if (type1 != MethodMapping.Type.IDENTICAL && type1 == type) {
+                int intersectionCount = thisTypeMappingForModified.get(newModifiedType).size();
+                if (newModifiedType != MethodMapping.Type.IDENTICAL && newModifiedType == oldNewType) {
                     List<Integer> countList = new ArrayList<>();
-                    countList.add(thisTypeMappingForModified.get(type1).size() - purgedMutualMethods);
+                    countList.add(intersectionCount - purgedMutualMethods);
                     countList.add(purgedMutualMethods);
-                    thisTypeStatsForModified.put(type1, countList);
+                    thisTypeStatsForModified.put(newModifiedType, countList);
                 } else {
-                    thisTypeStatsForModified.put(type1, Arrays.asList(intersectionCount));
+                    thisTypeStatsForModified.put(newModifiedType, Arrays.asList(intersectionCount));
                 }
             }
-            oldNewAndModifiedIntersectionMap.put(type, thisTypeStatsForModified);
+            oldNewAndModifiedIntersectionMap.put(oldNewType, thisTypeStatsForModified);
         }
 
         // Identify deleted methods
@@ -419,6 +425,42 @@ public class EvolutionAnalyser {
         }
 
         return result;
+    }
+
+    private void randomSampleCategory(Map<String, MethodModel> projectOldMethods,
+                                      Map<String, MethodModel> projectNewMethods,
+                                      Map<String, MethodModel> projectModifiedMethods,
+                                      Map<String, MethodMapping> mappingAndroidOldNew,
+                                      Map<String, MethodMapping> mappingAndroidOldModified,
+                                      MethodMapping.Type androidOldNewType,
+                                      MethodMapping.Type androidOldModifiedType,
+                                      int sampleSize) {
+
+        Map<MethodMapping.Type, Collection<String>> mappingOldNewStats = categorizeMappingTypes(mappingAndroidOldNew);
+        Map<MethodMapping.Type, Collection<String>> mappingOldModifiedStats = categorizeMappingTypes(mappingAndroidOldModified);
+        List<String> finalSet = new ArrayList<>();
+
+        Collection<String> oldMethodsForModified = mappingOldModifiedStats.get(androidOldModifiedType);
+        for (String oldMethod : mappingOldNewStats.get(androidOldNewType)) {
+            if (oldMethodsForModified.contains(oldMethod)) {
+                finalSet.add(oldMethod);
+            }
+        }
+
+        Random rand = new Random();
+        for (int i = 0; i < sampleSize && finalSet.size() > 0; i++) {
+            int randomIndex = rand.nextInt(finalSet.size());
+            String mutualOldMethod = finalSet.get(randomIndex);
+            finalSet.remove(randomIndex);
+            MethodModel anMethod = mappingAndroidOldNew.get(mutualOldMethod).getDestinationMethod();
+            MethodModel cmMethod = mappingAndroidOldModified.get(mutualOldMethod).getDestinationMethod();
+            System.out.println("AO method: " + projectOldMethods.get(mutualOldMethod).getFilePath() + " " + projectOldMethods.get(mutualOldMethod).getName());
+            System.out.println("AN method: " + anMethod.getFilePath() + " " + anMethod.getName());
+            System.out.println("MO method: " + cmMethod.getFilePath() + " " + cmMethod.getName());
+            System.out.println("AO->AN" + androidOldNewType + " " + mappingAndroidOldNew.get(mutualOldMethod).getType());
+            System.out.println("AO->MO" + androidOldModifiedType + " " + mappingAndroidOldModified.get(mutualOldMethod).getType());
+            System.out.println("-----------------------------------------");
+        }
     }
 
     private void randomSample(Collection<String> mainSet, int samplesCount, Map<String, MethodModel> projectOldMethods,
