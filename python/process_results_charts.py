@@ -79,12 +79,12 @@ def determine_table_color(row, column):
                    ['n', 'g', 'y', 'r', 'g', 'g', 'g', 'g', 'g', 'g', 'g', 'r', 'n'],
                    ['n', 'r', 'r', 'y', 'r', 'r', 'r', 'r', 'r', 'r', 'g', 'r', 'n'],
                    ['n', 'r', 'g', 'r', 'y', 'g', 'g', 'r', 'r', 'r', 'r', 'r', 'n'],
-                   ['n', 'g', 'g', 'g', 'g', 'y', 'g', 'y', 'g', 'g', 'g', 'r', 'n'],
-                   ['n', 'g', 'g', 'g', 'g', 'g', 'y', 'r', 'r', 'g', 'g', 'r', 'n'],
-                   ['n', 'g', 'g', 'r', 'r', 'g', 'r', 'y', 'r', 'r', 'r', 'r', 'n'],
+                   ['n', 'g', 'g', 'r', 'g', 'y', 'g', 'y', 'g', 'g', 'g', 'r', 'n'],
+                   ['n', 'g', 'g', 'r', 'g', 'g', 'y', 'r', 'r', 'g', 'g', 'r', 'n'],
+                   ['n', 'g', 'g', 'r', 'r', 'y', 'r', 'y', 'r', 'r', 'r', 'r', 'n'],
                    ['n', 'g', 'g', 'r', 'r', 'g', 'r', 'r', 'y', 'r', 'r', 'r', 'n'],
-                   ['n', 'g', 'g', 'g', 'r', 'g', 'g', 'r', 'r', 'y', 'r', 'r', 'n'],
-                   ['n', 'g', 'g', 'r', 'r', 'g', 'g', 'r', 'r', 'r', 'y', 'r', 'n'],
+                   ['n', 'g', 'g', 'r', 'r', 'g', 'g', 'r', 'r', 'y', 'r', 'r', 'n'],
+                   ['n', 'g', 'g', 'g', 'r', 'g', 'g', 'r', 'r', 'r', 'y', 'r', 'n'],
                    ['n', 'r', 'r', 'r', 'r', 'r', 'r', 'r', 'r', 'r', 'r', 'r', 'n']]
     return cell_colors[row][column]
 
@@ -250,15 +250,11 @@ def print_trends_plot_data(results):
                                                      colors[determine_table_color(row, column)]))
 
 
-def transform_into_interval(minimum, maximum, value):
-    if minimum > maximum:
-        value = 1 - value
-        minimum, maximum = maximum, minimum
-    return minimum + value * (maximum - minimum)
-
-
-def get_grayscale_hex(intensity):
-    return (3 * hex(int(intensity))[2:]).upper()
+def get_color_shade(color, intensity):
+    intensity = 1 - intensity
+    return '{:02X}'.format(int((255 - color[0]) * intensity) + color[0]) +\
+           '{:02X}'.format(int((255 - color[1]) * intensity) + color[1]) +\
+           '{:02X}'.format(int((255 - color[2]) * intensity) + color[2])
 
 
 def print_heat_map(results):
@@ -267,71 +263,83 @@ def print_heat_map(results):
         mo_changeset_tables = None
         for subsystem_result in results[project]:
             if mo_changeset_tables is None:
-                mo_changeset_tables = np.matrix(subsystem_result['table'])[:, 1:-1]
+                mo_changeset_tables = np.matrix(subsystem_result['table'])[:, :-1]
             else:
-                mo_changeset_tables += np.matrix(subsystem_result['table'])[:, 1:-1]
+                mo_changeset_tables += np.matrix(subsystem_result['table'])[:, :-1]
 
-        mo_changes = mo_changeset_tables.sum()
-        max_color = 0x33
-        min_color = 0xff
+        mo_changes = mo_changeset_tables.sum(axis=0)[:, 1:].sum()
+        flat = mo_changeset_tables[:, 1:].flatten()
+        flat.sort()
+        second_max = int(flat[:, -2])
+        max_no_changes = mo_changeset_tables[:, 1:].max()
+        normalize_factor = 1 / (second_max / mo_changes)
+
+        darkest_colors = {'r': (0xEA, 0x0D, 0x30),
+                          'g': (0x48, 0xD3, 0x73),
+                          'y': (0xFC, 0xC1, 0x68)
+                          }
 
         for row in range(mo_changeset_tables.shape[0]):
             output_row = change_types[row].replace('_', '\\_') + " & "
-            for column in range(mo_changeset_tables.shape[1]):
-                proportion = mo_changeset_tables[row, column] / mo_changes
+            for column in range(1, mo_changeset_tables.shape[1]):
+                real_proportion = mo_changeset_tables[row, column] / mo_changes
+                normalized_proportion = min(1, real_proportion * normalize_factor)
+
                 text_color = determine_table_color(row, column)
-                back_color = get_grayscale_hex(transform_into_interval(min_color, max_color, proportion))
-                output_row += '\cellcolor[HTML]{' + back_color +'}' + str(round(proportion * 100, 2)) + '\% & '
-            output_row = output_row[:-2] + '\\\\'
+                back_color = get_color_shade(darkest_colors[determine_table_color(row, column)], normalized_proportion)
+                output_row += '\cellcolor[HTML]{' + back_color +'}' + str(round(real_proportion * 100, 2)) + '\% & '
+            output_row = output_row[:-2] + '\\\\ \\hline'
             print(output_row)
 
 
-#
-#
-#
-# def extract_most_changed_subsystems(subsystem_results):
-#     subsystem_results_by_comparison_scenario = dict()
-#     for comparison_scenario in comparison_scenarios:
-#         subsystem_results_by_comparison_scenario[comparison_scenario] = list()
-#
-#     for subsystem_result in subsystem_results:
-#         comparison_scenario = '{},{},{}'.format(subsystem_result['ao'], subsystem_result['an'], subsystem_result['cm'])
-#         changes_table = subsystem_result['table']
-#         sum_of_columns = np.sum(changes_table, axis=0)
-#         sum_of_cm_changes = sum(sum_of_columns[1:-1])
-#         sum_of_an_changes = sum([l[-1] for l in changes_table[1:]])
-#         new_subsystem_entry = {'subsystem': subsystem_result['subsystem'],
-#                                'sum_of_cm_changes': sum_of_cm_changes,
-#                                'sum_of_an_changes': sum_of_an_changes}
-#         subsystem_results_by_comparison_scenario[comparison_scenario].append(new_subsystem_entry)
-#
-#     for comparison_scenario in subsystem_results_by_comparison_scenario:
-#         top_k = 5
-#         unsorted_subsystems = subsystem_results_by_comparison_scenario[comparison_scenario]
-#         an_sorted_subsystems_dict = sorted(unsorted_subsystems, key=lambda k: k['sum_of_an_changes'],
-#                                            reverse=True)[:top_k]
-#         cm_sorted_subsystems_dict = sorted(unsorted_subsystems, key=lambda k: k['sum_of_cm_changes'],
-#                                            reverse=True)[:top_k]
-#         an_sorted_subsystems_set = {x['subsystem'] for x in an_sorted_subsystems_dict}
-#         cm_sorted_subsystems_set = {x['subsystem'] for x in cm_sorted_subsystems_dict}
-#         subsystems_info = {x['subsystem']: (str(x['sum_of_an_changes']), str(x['sum_of_cm_changes'])) for x in
-#                            unsorted_subsystems}
-#         print(comparison_scenario)
-#         for i in range(top_k):
-#             suffix = ''
-#             if i == top_k - 1:
-#                 suffix = ' \hline'
-#             an_subsystem = an_sorted_subsystems_dict[i]['subsystem']
-#             cm_subsystem = cm_sorted_subsystems_dict[i]['subsystem']
-#             if an_subsystem in cm_sorted_subsystems_set:
-#                 an_subsystem = '\\textbf{' + an_subsystem + '}'
-#             if cm_subsystem in an_sorted_subsystems_set:
-#                 cm_subsystem = '\\textbf{' + cm_subsystem + '}'
-#             an_subsystem = an_subsystem + ' (' + subsystems_info[an_sorted_subsystems_dict[i]['subsystem']][0] + ')'
-#             cm_subsystem = cm_subsystem + ' (' + subsystems_info[cm_sorted_subsystems_dict[i]['subsystem']][1] + ')'
-#             print(' & {} & {} \\\\{}'.format(an_subsystem.replace('_', '\_'),
-#                                              cm_subsystem.replace('_', '\_'),
-#                                              suffix))
+def extract_most_changed_subsystems(results):
+    for project in results.keys():
+        print(project + ":")
+        subsystem_results_by_comparison_scenario = dict()
+        for subsystem_result in results[project]:
+            comparison_scenario = '{},{},{}'.format(subsystem_result['ao'], subsystem_result['an'],
+                                                    subsystem_result['mo_version'])
+
+            changes_table = subsystem_result['table']
+            sum_of_columns = np.sum(changes_table, axis=0)
+            sum_of_mo_changes = sum(sum_of_columns[1:-1])
+            sum_of_an_changes = sum([l[-1] for l in changes_table[1:]])
+            new_subsystem_entry = {'subsystem': subsystem_result['subsystem'],
+                                   'sum_of_mo_changes': sum_of_mo_changes,
+                                   'sum_of_an_changes': sum_of_an_changes}
+
+            if comparison_scenario not in subsystem_results_by_comparison_scenario:
+                subsystem_results_by_comparison_scenario[comparison_scenario] = list()
+
+            subsystem_results_by_comparison_scenario[comparison_scenario].append(new_subsystem_entry)
+
+        for comparison_scenario in subsystem_results_by_comparison_scenario:
+            top_k = 5
+            unsorted_subsystems = subsystem_results_by_comparison_scenario[comparison_scenario]
+            an_sorted_subsystems_dict = sorted(unsorted_subsystems, key=lambda k: k['sum_of_an_changes'],
+                                               reverse=True)[:top_k]
+            mo_sorted_subsystems_dict = sorted(unsorted_subsystems, key=lambda k: k['sum_of_mo_changes'],
+                                               reverse=True)[:top_k]
+            an_sorted_subsystems_set = {x['subsystem'] for x in an_sorted_subsystems_dict}
+            mo_sorted_subsystems_set = {x['subsystem'] for x in mo_sorted_subsystems_dict}
+            subsystems_info = {x['subsystem']: (str(x['sum_of_an_changes']), str(x['sum_of_mo_changes'])) for x in
+                               unsorted_subsystems}
+            print(comparison_scenario)
+            for i in range(top_k):
+                suffix = ''
+                if i == top_k - 1:
+                    suffix = ' \hline'
+                an_subsystem = an_sorted_subsystems_dict[i]['subsystem']
+                mo_subsystem = mo_sorted_subsystems_dict[i]['subsystem']
+                if an_subsystem in mo_sorted_subsystems_set:
+                    an_subsystem = '\\textbf{' + an_subsystem + '}'
+                if mo_subsystem in an_sorted_subsystems_set:
+                    mo_subsystem = '\\textbf{' + mo_subsystem + '}'
+                an_subsystem = an_subsystem + ' (' + subsystems_info[an_sorted_subsystems_dict[i]['subsystem']][0] + ')'
+                mo_subsystem = mo_subsystem + ' (' + subsystems_info[mo_sorted_subsystems_dict[i]['subsystem']][1] + ')'
+                print(' & {} & {} \\\\{}'.format(an_subsystem.replace('_', '\_'),
+                                                 mo_subsystem.replace('_', '\_'),
+                                                 suffix))
 #
 #
 # def print_subsystems_stats(subsystem_results):
@@ -407,10 +415,10 @@ def run():
 
     results = read_data()
 
-    # print_colours_stat(results)
+    print_colours_stat(results)
     # print_bar_chart_data(results)
     # print_trends_plot_data(results)
-    print_heat_map(results)
+    # print_heat_map(results)
     # extract_most_changed_subsystems(results)
     # print_subsystems_stats(results)
     # print_box_plot_data(results)
