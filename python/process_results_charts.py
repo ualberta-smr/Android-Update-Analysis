@@ -280,15 +280,15 @@ def print_heat_map(results):
                           }
 
         for row in range(mo_changeset_tables.shape[0]):
-            output_row = change_types[row].replace('_', '\\_') + " & "
+            output_row = '\\multicolumn{1}{|c|}{} & ' + change_types[row].replace('_', '\\_') + " & "
             for column in range(1, mo_changeset_tables.shape[1]):
                 real_proportion = mo_changeset_tables[row, column] / mo_changes
                 normalized_proportion = min(1, real_proportion * normalize_factor)
 
                 text_color = determine_table_color(row, column)
                 back_color = get_color_shade(darkest_colors[determine_table_color(row, column)], normalized_proportion)
-                output_row += '\cellcolor[HTML]{' + back_color +'}' + str(round(real_proportion * 100, 2)) + '\% & '
-            output_row = output_row[:-2] + '\\\\ \\hline'
+                output_row += '\cellcolor[HTML]{' + back_color +'}' + str(mo_changeset_tables[row, column]) + '\% & '
+            output_row = output_row[:-2] + '\\\\ \\hhline{|~|-|-|-|-|-|-|-|-|-|-|-|-}'
             print(output_row)
 
 
@@ -314,8 +314,13 @@ def extract_most_changed_subsystems(results):
             subsystem_results_by_comparison_scenario[comparison_scenario].append(new_subsystem_entry)
 
         for comparison_scenario in subsystem_results_by_comparison_scenario:
-            top_k = 5
+
             unsorted_subsystems = subsystem_results_by_comparison_scenario[comparison_scenario]
+
+            mutually_changed_subsystems = {x['subsystem'] for x in unsorted_subsystems if x['sum_of_mo_changes'] > 0
+                                    and x['sum_of_an_changes'] > 0}
+
+            top_k = 5
             an_sorted_subsystems_dict = sorted(unsorted_subsystems, key=lambda k: k['sum_of_an_changes'],
                                                reverse=True)[:top_k]
             mo_sorted_subsystems_dict = sorted(unsorted_subsystems, key=lambda k: k['sum_of_mo_changes'],
@@ -324,7 +329,9 @@ def extract_most_changed_subsystems(results):
             mo_sorted_subsystems_set = {x['subsystem'] for x in mo_sorted_subsystems_dict}
             subsystems_info = {x['subsystem']: (str(x['sum_of_an_changes']), str(x['sum_of_mo_changes'])) for x in
                                unsorted_subsystems}
-            print(comparison_scenario)
+
+            output_row = '\multirow{5}{*}{' + short_cs_names[comparison_scenario] + '} & '
+            output_row += '\multirow{5}{*}{' + str(len(mutually_changed_subsystems)) + '}\n'
             for i in range(top_k):
                 suffix = ''
                 if i == top_k - 1:
@@ -337,9 +344,12 @@ def extract_most_changed_subsystems(results):
                     mo_subsystem = '\\textbf{' + mo_subsystem + '}'
                 an_subsystem = an_subsystem + ' (' + subsystems_info[an_sorted_subsystems_dict[i]['subsystem']][0] + ')'
                 mo_subsystem = mo_subsystem + ' (' + subsystems_info[mo_sorted_subsystems_dict[i]['subsystem']][1] + ')'
-                print(' & {} & {} \\\\{}'.format(an_subsystem.replace('_', '\_'),
+                if i > 0:
+                    output_row += ' &'
+                output_row += ' & {} & {} \\\\{}'.format(an_subsystem.replace('_', '\_'),
                                                  mo_subsystem.replace('_', '\_'),
-                                                 suffix))
+                                                 suffix + '\n')
+            print(output_row)
 #
 #
 # def print_subsystems_stats(subsystem_results):
@@ -398,16 +408,25 @@ def extract_most_changed_subsystems(results):
 #     print(
 #         'BODY_BODY: Average: {}, Mean: {}'.format(stats.mean(body_body_proportion), stats.median(body_body_proportion)))
 #
-#
-# def print_most_changed_sub(subsystem_results, row, column):
-#     aggregated_tables = dict()
-#     for comparison_scenario in comparison_scenarios:
-#         aggregated_tables[comparison_scenario] = np.zeros((5, 5), dtype=np.int)
-#
-#     # max_cat = (0, '')
-#     for subsystem_result in subsystem_results:
-#         comparison_scenario = '{},{},{}'.format(subsystem_result['ao'], subsystem_result['an'], subsystem_result['cm'])
-#         aggregated_tables[comparison_scenario] += np.matrix(subsystem_result['table'])[:, :-1]
+
+
+def print_most_changed_sub(results, row, column):
+    for project in results.keys():
+        print(project + ":")
+        subsystem_results_by_comparison_scenario = dict()
+
+        max_sub_count = 0
+        for subsystem_result in results[project]:
+            comparison_scenario = '{},{},{}'.format(subsystem_result['ao'], subsystem_result['an'],
+                                                    subsystem_result['mo_version'])
+
+            changes_table = subsystem_result['table']
+            if changes_table[row][column] > max_sub_count and subsystem_result['subsystem'] != 'packages_apps_Bluetooth':
+                max_sub_count = changes_table[row][column]
+                max_cs = short_cs_names[comparison_scenario]
+                max_subsystem = subsystem_result
+
+    print('{}, {}, {}'.format(max_cs, max_subsystem['subsystem'], max_sub_count))
 
 
 def run():
@@ -415,11 +434,12 @@ def run():
 
     results = read_data()
 
-    print_colours_stat(results)
-    # print_bar_chart_data(results)
+    # print_colours_stat(results)
+    print_bar_chart_data(results)
     # print_trends_plot_data(results)
     # print_heat_map(results)
     # extract_most_changed_subsystems(results)
+    # print_most_changed_sub(results, 10, 10)
     # print_subsystems_stats(results)
     # print_box_plot_data(results)
     # average_stats(results)

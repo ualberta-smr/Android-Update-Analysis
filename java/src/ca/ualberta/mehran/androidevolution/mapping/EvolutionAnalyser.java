@@ -50,13 +50,13 @@ public class EvolutionAnalyser {
 //                projectNewMethods,
 //                projectModifiedMethods,
 //                mappingAndroidOldNew,
-//                mappingAndroidOldModified, MethodMapping.Type.BODY_CHANGE_ONLY, MethodMapping.Type.REFACTORED_EXTRACT, 5);
+//                mappingAndroidOldModified, MethodMapping.Type.BODY_CHANGE_ONLY, MethodMapping.Type.BODY_CHANGE_ONLY, 20);
+
         Map<MethodMapping.Type, Map<MethodMapping.Type, List<Integer>>> stats = generateIntersectionsOfMappings(projectOldMethods,
                 projectNewMethods,
                 projectModifiedMethods,
                 mappingAndroidOldNew,
                 mappingAndroidOldModified);
-
         writeToOutput(methodsCount[0], methodsCount[1], methodsCount[2], stats, new File(outputDir, subsystemName + ".csv").getAbsolutePath());
     }
 
@@ -456,8 +456,8 @@ public class EvolutionAnalyser {
             System.out.println("AO method: " + projectOldMethods.get(mutualOldMethod).getFilePath() + " " + projectOldMethods.get(mutualOldMethod).getName());
             System.out.println("AN method: " + anMethod.getFilePath() + " " + anMethod.getName());
             System.out.println("MO method: " + cmMethod.getFilePath() + " " + cmMethod.getName());
-            System.out.println("AO->AN" + androidOldNewType + " " + mappingAndroidOldNew.get(mutualOldMethod).getType());
-            System.out.println("AO->MO" + androidOldModifiedType + " " + mappingAndroidOldModified.get(mutualOldMethod).getType());
+            System.out.println("AO->AN " + androidOldNewType + " " + mappingAndroidOldNew.get(mutualOldMethod).getType());
+            System.out.println("AO->MO " + androidOldModifiedType + " " + mappingAndroidOldModified.get(mutualOldMethod).getType());
             System.out.println("-----------------------------------------");
         }
     }
