@@ -47,6 +47,7 @@ short_cs_names = {'android-4.2.2_r1,android-4.3.1_r1,cm-10.1': 'CS1',
                   'android-6.0.1_r62,android-7.0.0_r1,marshmallow': 'CS6',
                   'android-7.0.0_r6,android-7.1.2_r1,nougat': 'CS7'}
 
+
 def is_right_format(lines):
     if len(lines) != 16:
         return False
@@ -258,38 +259,97 @@ def get_color_shade(color, intensity):
 
 
 def print_heat_map(results):
+    text_colors = {'r': (0xEA, 0x0D, 0x30),
+                   'g': (0x38, 0xAA, 0x5C),
+                   'y': (0xFC, 0xC1, 0x68)
+                   }
+    darkest_colors = {'r': (0x55, 0x55, 0x55),
+                      'g': (0x55, 0x55, 0x55),
+                      'y': (0x55, 0x55, 0x55)
+                      }
+
     for project in results.keys():
         print(project + ":")
-        mo_changeset_tables = None
+
+        aggregated_tables = dict()
         for subsystem_result in results[project]:
-            if mo_changeset_tables is None:
-                mo_changeset_tables = np.matrix(subsystem_result['table'])[:, :-1]
+            comparison_scenario = '{},{},{}'.format(subsystem_result['ao'], subsystem_result['an'],
+                                                    subsystem_result['mo_version'])
+            comparison_scenario = short_cs_names[comparison_scenario]
+
+            if comparison_scenario not in aggregated_tables:
+                aggregated_tables[comparison_scenario] = np.matrix(subsystem_result['table'])[:, :-1]
+                table_size = aggregated_tables[comparison_scenario].shape
             else:
-                mo_changeset_tables += np.matrix(subsystem_result['table'])[:, :-1]
+                aggregated_tables[comparison_scenario] += np.matrix(subsystem_result['table'])[:, :-1]
 
-        mo_changes = mo_changeset_tables.sum(axis=0)[:, 1:].sum()
-        flat = mo_changeset_tables[:, 1:].flatten()
-        flat.sort()
-        second_max = int(flat[:, -2])
-        max_no_changes = mo_changeset_tables[:, 1:].max()
-        normalize_factor = 1 / (second_max / mo_changes)
+        for row in range(table_size[0]):
+            output_row = '\\multicolumn{1}{|c|}{} & ' + change_types[row].replace('_', ' ') + " & "
+            for column in range(1, table_size[1]):
+                proportions_list = list()
+                for comparison_scenario, aggregated_table in aggregated_tables.items():
+                    sum_of_cm_changes = aggregated_table[:, 1:].sum()
+                    proportions_list.append(aggregated_table[row, column] / sum_of_cm_changes)
 
-        darkest_colors = {'r': (0xEA, 0x0D, 0x30),
-                          'g': (0x48, 0xD3, 0x73),
-                          'y': (0xFC, 0xC1, 0x68)
-                          }
-
-        for row in range(mo_changeset_tables.shape[0]):
-            output_row = '\\multicolumn{1}{|c|}{} & ' + change_types[row].replace('_', '\\_') + " & "
-            for column in range(1, mo_changeset_tables.shape[1]):
-                real_proportion = mo_changeset_tables[row, column] / mo_changes
-                normalized_proportion = min(1, real_proportion * normalize_factor)
-
-                text_color = determine_table_color(row, column)
-                back_color = get_color_shade(darkest_colors[determine_table_color(row, column)], normalized_proportion)
-                output_row += '\cellcolor[HTML]{' + back_color +'}' + str(mo_changeset_tables[row, column]) + '\% & '
-            output_row = output_row[:-2] + '\\\\ \\hhline{|~|-|-|-|-|-|-|-|-|-|-|-|-}'
+                avg_proportion = np.average(proportions_list)
+                text_color = get_color_shade(text_colors[determine_table_color(row, column)], 1.)
+                back_color = get_color_shade(darkest_colors[determine_table_color(row, column)], avg_proportion)
+                output_row += '\cellcolor[HTML]{' + back_color + '} \\textcolor[HTML]{' + text_color + '}{' + str(
+                    round(avg_proportion * 100, 2)) + '\%} & '
+            output_row = output_row[:-2] + '\\\\ \\hhline{|~|-|-|-|-|-|-|-|-|-|-|-|-}\n'
             print(output_row)
+
+        # mo_changeset_tables = None
+        # for subsystem_result in results[project]:
+        #     if mo_changeset_tables is None:
+        #         mo_changeset_tables = np.matrix(subsystem_result['table'])[:, :-1]
+        #     else:
+        #         mo_changeset_tables += np.matrix(subsystem_result['table'])[:, :-1]
+        # mo_changes = mo_changeset_tables.sum(axis=0)[:, 1:].sum()
+        # flat = mo_changeset_tables[:, 1:].flatten()
+        # flat.sort()
+        # second_max = int(flat[:, -2])
+        # normalize_factor = 1 / (second_max / mo_changes)
+        #
+        #
+        # for row in range(mo_changeset_tables.shape[0]):
+        #     output_row = '\\multicolumn{1}{|c|}{} & ' + change_types[row].replace('_', ' ') + " & "
+        #     for column in range(1, mo_changeset_tables.shape[1]):
+        #         real_proportion = mo_changeset_tables[row, column] / mo_changes
+        #         normalized_proportion = min(1, real_proportion * normalize_factor)
+        #         text_color = get_color_shade(text_colors[determine_table_color(row, column)], 1.)
+        #         back_color = get_color_shade(darkest_colors[determine_table_color(row, column)], normalized_proportion)
+        #         output_row += '\cellcolor[HTML]{' + back_color + '} \\textcolor[HTML]{' + text_color + '}{' + str(round(real_proportion * 100, 2)) + '\%} & '
+        #     output_row = output_row[:-2] + '\\\\ \\hhline{|~|-|-|-|-|-|-|-|-|-|-|-|-}\n'
+        #     print(output_row)
+
+
+def average_stats(results):
+    for project in results.keys():
+        aggregated_tables = dict()
+
+        for subsystem_result in results[project]:
+            comparison_scenario = '{},{},{}'.format(subsystem_result['ao'], subsystem_result['an'],
+                                                    subsystem_result['mo_version'])
+            comparison_scenario = short_cs_names[comparison_scenario]
+
+            if comparison_scenario not in aggregated_tables:
+                aggregated_tables[comparison_scenario] = np.matrix(subsystem_result['table'])[:, :-1]
+            else:
+                aggregated_tables[comparison_scenario] += np.matrix(subsystem_result['table'])[:, :-1]
+
+        id_body_proportion = list()
+        body_body_proportion = list()
+        for comparison_scenario, aggregated_table in aggregated_tables.items():
+            # Don't count deleted-deleted
+            # aggregated_table[4, 4] = 0
+            sum_of_cm_changes = aggregated_table[:, 1:].sum()
+            id_body_proportion.append(aggregated_table[0, 10] / sum_of_cm_changes)
+            body_body_proportion.append(aggregated_table[10, 10] / sum_of_cm_changes)
+
+        print('ID_BODY: Average: {}, Mean: {}'.format(stats.mean(id_body_proportion), stats.median(id_body_proportion)))
+        print(
+            'BODY_BODY: Average: {}, Mean: {}'.format(stats.mean(body_body_proportion), stats.median(body_body_proportion)))
 
 
 def extract_most_changed_subsystems(results):
@@ -317,8 +377,11 @@ def extract_most_changed_subsystems(results):
 
             unsorted_subsystems = subsystem_results_by_comparison_scenario[comparison_scenario]
 
-            mutually_changed_subsystems = {x['subsystem'] for x in unsorted_subsystems if x['sum_of_mo_changes'] > 0
-                                    and x['sum_of_an_changes'] > 0}
+            mutually_changed_subsystems = len({x['subsystem'] for x in unsorted_subsystems if x['sum_of_mo_changes'] > 0
+                                           and x['sum_of_an_changes'] > 0})
+            an_changed_subsystems = len({x['subsystem'] for x in unsorted_subsystems if x['sum_of_an_changes'] > 0})
+            mo_changed_subsystems = len({x['subsystem'] for x in unsorted_subsystems if x['sum_of_mo_changes'] > 0})
+
 
             top_k = 5
             an_sorted_subsystems_dict = sorted(unsorted_subsystems, key=lambda k: k['sum_of_an_changes'],
@@ -330,8 +393,8 @@ def extract_most_changed_subsystems(results):
             subsystems_info = {x['subsystem']: (str(x['sum_of_an_changes']), str(x['sum_of_mo_changes'])) for x in
                                unsorted_subsystems}
 
-            output_row = '\multirow{5}{*}{' + short_cs_names[comparison_scenario] + '} & '
-            output_row += '\multirow{5}{*}{' + str(len(mutually_changed_subsystems)) + '}\n'
+            output_row = '\multirow{5}{*}{' + short_cs_names[comparison_scenario] + '}'
+            # output_row += '\multirow{5}{*}{' + str(len(mutually_changed_subsystems)) + '}\n'
             for i in range(top_k):
                 suffix = ''
                 if i == top_k - 1:
@@ -344,12 +407,66 @@ def extract_most_changed_subsystems(results):
                     mo_subsystem = '\\textbf{' + mo_subsystem + '}'
                 an_subsystem = an_subsystem + ' (' + subsystems_info[an_sorted_subsystems_dict[i]['subsystem']][0] + ')'
                 mo_subsystem = mo_subsystem + ' (' + subsystems_info[mo_sorted_subsystems_dict[i]['subsystem']][1] + ')'
-                if i > 0:
-                    output_row += ' &'
+                output_row += ' & '
+                if i == 1:
+                    output_row += str(an_changed_subsystems)
+                elif i == 2:
+                    output_row += str(mo_changed_subsystems)
+                elif i == 3:
+                    output_row += str(mutually_changed_subsystems) + ' ({}\\% of \\cm)'.format(round((mutually_changed_subsystems / mo_changed_subsystems) * 100, 2))
                 output_row += ' & {} & {} \\\\{}'.format(an_subsystem.replace('_', '\_'),
                                                  mo_subsystem.replace('_', '\_'),
                                                  suffix + '\n')
             print(output_row)
+
+
+def print_cs_average_mean_stats(results):
+    for project in results.keys():
+        print(project + ":")
+        bar_chart_result = dict()
+        for subsystem_result in results[project]:
+            comparison_scenario = '{},{},{}'.format(subsystem_result['ao'], subsystem_result['an'], subsystem_result['mo_version'])
+            comparison_scenario = short_cs_names[comparison_scenario]
+            if comparison_scenario not in bar_chart_result:
+                bar_chart_result[comparison_scenario] = dict()
+            table = np.array(subsystem_result['table'])
+            for row in range(table.shape[0]):
+                for col in range(table.shape[1]):
+                    cell_color = determine_table_color(row, col)
+                    bar_chart_result[comparison_scenario][cell_color] = bar_chart_result[comparison_scenario].get(
+                        cell_color, 0) + table[row][col]
+
+        three_colors_list = dict()
+        three_colors_list['g'] = list()
+        three_colors_list['r'] = list()
+        three_colors_list['y'] = list()
+
+        colors_list = ['g', 'r', 'y']
+        for comparison_scenario in bar_chart_result:
+            colors_sum = 0
+            for color in colors_list:
+                colors_sum += bar_chart_result[comparison_scenario].get(color, 0)
+
+            for color in colors_list:
+                this_color_count = bar_chart_result[comparison_scenario].get(color, 0)
+                bar_chart_result[comparison_scenario][color] = dict()
+                bar_chart_result[comparison_scenario][color]['count'] = this_color_count
+                bar_chart_result[comparison_scenario][color]['proportion'] = this_color_count / colors_sum
+                three_colors_list[color].append(this_color_count / colors_sum)
+
+        greens = list()
+        yellows = list()
+        reds = list()
+        for comparison_scenario in bar_chart_result.keys():
+            greens.append(bar_chart_result[comparison_scenario]['g']['proportion'])
+            yellows.append(bar_chart_result[comparison_scenario]['y']['proportion'])
+            reds.append(bar_chart_result[comparison_scenario]['r']['proportion'])
+
+        print("green - avg: {}  median: {}".format(np.average(greens), np.median(greens)))
+        print("red - avg: {}  median: {}".format(np.average(reds), np.median(reds)))
+        print("yellow - avg: {}  median: {}".format(np.average(yellows), np.median(yellows)))
+
+
 #
 #
 # def print_subsystems_stats(subsystem_results):
@@ -386,28 +503,6 @@ def extract_most_changed_subsystems(results):
 #
 #
 #
-# def average_stats(subsystem_results):
-#     aggregated_tables = dict()
-#     for comparison_scenario in comparison_scenarios:
-#         aggregated_tables[comparison_scenario] = np.zeros((5, 5), dtype=np.int)
-#
-#     for subsystem_result in subsystem_results:
-#         comparison_scenario = '{},{},{}'.format(subsystem_result['ao'], subsystem_result['an'], subsystem_result['cm'])
-#         aggregated_tables[comparison_scenario] += np.matrix(subsystem_result['table'])[:, :-1]
-#
-#     id_body_proportion = list()
-#     body_body_proportion = list()
-#     for comparison_scenario, aggregated_table in aggregated_tables.items():
-#         # Don't count deleted-deleted
-#         aggregated_table[4, 4] = 0
-#         sum_of_cm_changes = aggregated_table[:, 1:].sum()
-#         id_body_proportion.append(aggregated_table[0, 3] / sum_of_cm_changes)
-#         body_body_proportion.append(aggregated_table[3, 3] / sum_of_cm_changes)
-#
-#     print('ID_BODY: Average: {}, Mean: {}'.format(stats.mean(id_body_proportion), stats.median(id_body_proportion)))
-#     print(
-#         'BODY_BODY: Average: {}, Mean: {}'.format(stats.mean(body_body_proportion), stats.median(body_body_proportion)))
-#
 
 
 def print_most_changed_sub(results, row, column):
@@ -435,14 +530,13 @@ def run():
     results = read_data()
 
     # print_colours_stat(results)
-    print_bar_chart_data(results)
+    # print_bar_chart_data(results)
     # print_trends_plot_data(results)
     # print_heat_map(results)
     # extract_most_changed_subsystems(results)
     # print_most_changed_sub(results, 10, 10)
-    # print_subsystems_stats(results)
-    # print_box_plot_data(results)
-    # average_stats(results)
+    # print_cs_average_mean_stats(results)
+    average_stats(results)
 
 
 if __name__ == '__main__':
