@@ -87,6 +87,19 @@ def determine_table_color(row, column):
                    ['n', 'g', 'g', 'r', 'r', 'g', 'g', 'r', 'r', 'y', 'r', 'r', 'n'],
                    ['n', 'g', 'g', 'g', 'r', 'g', 'g', 'r', 'r', 'r', 'y', 'r', 'n'],
                    ['n', 'r', 'r', 'r', 'r', 'r', 'r', 'r', 'r', 'r', 'r', 'r', 'n']]
+    cell_color_cm_priority = [['n', 'g', 'g', 'g', 'g', 'g', 'g', 'g', 'g', 'g', 'g', 'r', 'n'],
+                              ['n', 'g', 'g', 'r', 'g', 'g', 'g', 'g', 'g', 'g', 'g', 'r', 'n'],
+                              ['n', 'g', 'g', 'r', 'g', 'g', 'g', 'g', 'g', 'g', 'g', 'r', 'n'],
+                              ['n', 'r', 'r', 'g', 'r', 'r', 'r', 'r', 'r', 'r', 'g', 'r', 'n'],
+                              ['n', 'g', 'g', 'r', 'y', 'g', 'g', 'r', 'r', 'r', 'r', 'r', 'n'],
+                              ['n', 'g', 'g', 'r', 'g', 'g', 'g', 'y', 'g', 'g', 'g', 'r', 'n'],
+                              ['n', 'g', 'g', 'g', 'g', 'g', 'g', 'g', 'g', 'g', 'g', 'r', 'n'],
+                              ['n', 'g', 'g', 'r', 'r', 'y', 'r', 'y', 'r', 'r', 'r', 'r', 'n'],
+                              ['n', 'g', 'g', 'r', 'r', 'g', 'r', 'r', 'y', 'r', 'r', 'r', 'n'],
+                              ['n', 'g', 'g', 'r', 'r', 'g', 'g', 'r', 'r', 'y', 'r', 'r', 'n'],
+                              ['n', 'g', 'g', 'g', 'r', 'g', 'g', 'r', 'r', 'r', 'y', 'r', 'n'],
+                              ['n', 'r', 'r', 'r', 'r', 'r', 'r', 'r', 'r', 'r', 'r', 'r', 'n']]
+
     return cell_colors[row][column]
 
 
@@ -133,9 +146,6 @@ def read_data():
     return results
 
 
-
-
-
 def print_colours_stat(results):
     for project in results.keys():
         sum_of_tables = None
@@ -168,12 +178,12 @@ def print_colours_stat(results):
 
 
 def print_bar_chart_data(results):
-
     for project in results.keys():
         print(project + ":")
         bar_chart_result = dict()
         for subsystem_result in results[project]:
-            comparison_scenario = '{},{},{}'.format(subsystem_result['ao'], subsystem_result['an'], subsystem_result['mo_version'])
+            comparison_scenario = '{},{},{}'.format(subsystem_result['ao'], subsystem_result['an'],
+                                                    subsystem_result['mo_version'])
             if comparison_scenario not in bar_chart_result:
                 bar_chart_result[comparison_scenario] = dict()
             table = np.array(subsystem_result['table'])
@@ -205,19 +215,19 @@ def print_bar_chart_data(results):
         # print(stats.mean(three_colors_list['r']))
         # print(stats.mean(three_colors_list['y']))
 
-        color_labels = {'r': 'Conflict',
-                        'g': 'No Conflict',
-                        'y': 'Potential Conflict'}
+        color_labels = {'r': 'Not Possible',
+                        'g': 'Possible',
+                        'y': 'Might Be Possible'}
         print("name,color,proportion,count,label_y")
         for comparison_scenario in bar_chart_result:
             for color in colors_list:
                 proportion = bar_chart_result[comparison_scenario][color]['proportion']
                 count = bar_chart_result[comparison_scenario][color]['count']
                 label_y = proportion / 2
-                if color == 'r':
+                if color == 'y':
                     label_y += (1 - proportion)
-                elif color == 'g':
-                    label_y += bar_chart_result[comparison_scenario]['y']['proportion']
+                elif color == 'r':
+                    label_y += bar_chart_result[comparison_scenario]['g']['proportion']
                 short_comparison_name = short_cs_names[comparison_scenario]
                 print('{},{},{},{},{}'.format(short_comparison_name, color_labels[color], proportion, count, label_y))
 
@@ -253,8 +263,8 @@ def print_trends_plot_data(results):
 
 def get_color_shade(color, intensity):
     intensity = 1 - intensity
-    return '{:02X}'.format(int((255 - color[0]) * intensity) + color[0]) +\
-           '{:02X}'.format(int((255 - color[1]) * intensity) + color[1]) +\
+    return '{:02X}'.format(int((255 - color[0]) * intensity) + color[0]) + \
+           '{:02X}'.format(int((255 - color[1]) * intensity) + color[1]) + \
            '{:02X}'.format(int((255 - color[2]) * intensity) + color[2])
 
 
@@ -338,18 +348,22 @@ def average_stats(results):
             else:
                 aggregated_tables[comparison_scenario] += np.matrix(subsystem_result['table'])[:, :-1]
 
+        am_id_cm_changed_proportion = list()
         id_body_proportion = list()
         body_body_proportion = list()
         for comparison_scenario, aggregated_table in aggregated_tables.items():
             # Don't count deleted-deleted
             # aggregated_table[4, 4] = 0
             sum_of_cm_changes = aggregated_table[:, 1:].sum()
+            am_id_cm_changed_proportion.append(int(aggregated_table[:, 1:].sum(axis=1)[0]) / sum_of_cm_changes)
             id_body_proportion.append(aggregated_table[0, 10] / sum_of_cm_changes)
             body_body_proportion.append(aggregated_table[10, 10] / sum_of_cm_changes)
 
+        print('ID: Average: {}, Mean: {}'.format(stats.mean(am_id_cm_changed_proportion), stats.median(am_id_cm_changed_proportion)))
         print('ID_BODY: Average: {}, Mean: {}'.format(stats.mean(id_body_proportion), stats.median(id_body_proportion)))
         print(
-            'BODY_BODY: Average: {}, Mean: {}'.format(stats.mean(body_body_proportion), stats.median(body_body_proportion)))
+            'BODY_BODY: Average: {}, Mean: {}'.format(stats.mean(body_body_proportion),
+                                                      stats.median(body_body_proportion)))
 
 
 def extract_most_changed_subsystems(results):
@@ -378,10 +392,9 @@ def extract_most_changed_subsystems(results):
             unsorted_subsystems = subsystem_results_by_comparison_scenario[comparison_scenario]
 
             mutually_changed_subsystems = len({x['subsystem'] for x in unsorted_subsystems if x['sum_of_mo_changes'] > 0
-                                           and x['sum_of_an_changes'] > 0})
+                                               and x['sum_of_an_changes'] > 0})
             an_changed_subsystems = len({x['subsystem'] for x in unsorted_subsystems if x['sum_of_an_changes'] > 0})
             mo_changed_subsystems = len({x['subsystem'] for x in unsorted_subsystems if x['sum_of_mo_changes'] > 0})
-
 
             top_k = 5
             an_sorted_subsystems_dict = sorted(unsorted_subsystems, key=lambda k: k['sum_of_an_changes'],
@@ -413,10 +426,11 @@ def extract_most_changed_subsystems(results):
                 elif i == 2:
                     output_row += str(mo_changed_subsystems)
                 elif i == 3:
-                    output_row += str(mutually_changed_subsystems) + ' ({}\\% of \\cm)'.format(round((mutually_changed_subsystems / mo_changed_subsystems) * 100, 2))
+                    output_row += str(mutually_changed_subsystems) + ' ({}\\% of \\cm)'.format(
+                        round((mutually_changed_subsystems / mo_changed_subsystems) * 100, 2))
                 output_row += ' & {} & {} \\\\{}'.format(an_subsystem.replace('_', '\_'),
-                                                 mo_subsystem.replace('_', '\_'),
-                                                 suffix + '\n')
+                                                         mo_subsystem.replace('_', '\_'),
+                                                         suffix + '\n')
             print(output_row)
 
 
@@ -425,7 +439,8 @@ def print_cs_average_mean_stats(results):
         print(project + ":")
         bar_chart_result = dict()
         for subsystem_result in results[project]:
-            comparison_scenario = '{},{},{}'.format(subsystem_result['ao'], subsystem_result['an'], subsystem_result['mo_version'])
+            comparison_scenario = '{},{},{}'.format(subsystem_result['ao'], subsystem_result['an'],
+                                                    subsystem_result['mo_version'])
             comparison_scenario = short_cs_names[comparison_scenario]
             if comparison_scenario not in bar_chart_result:
                 bar_chart_result[comparison_scenario] = dict()
@@ -516,7 +531,8 @@ def print_most_changed_sub(results, row, column):
                                                     subsystem_result['mo_version'])
 
             changes_table = subsystem_result['table']
-            if changes_table[row][column] > max_sub_count and subsystem_result['subsystem'] != 'packages_apps_Bluetooth':
+            if changes_table[row][column] > max_sub_count and subsystem_result[
+                'subsystem'] != 'packages_apps_Bluetooth':
                 max_sub_count = changes_table[row][column]
                 max_cs = short_cs_names[comparison_scenario]
                 max_subsystem = subsystem_result
@@ -530,13 +546,13 @@ def run():
     results = read_data()
 
     # print_colours_stat(results)
-    # print_bar_chart_data(results)
+    print_bar_chart_data(results)
     # print_trends_plot_data(results)
     # print_heat_map(results)
     # extract_most_changed_subsystems(results)
     # print_most_changed_sub(results, 10, 10)
     # print_cs_average_mean_stats(results)
-    average_stats(results)
+    # average_stats(results)
 
 
 if __name__ == '__main__':
