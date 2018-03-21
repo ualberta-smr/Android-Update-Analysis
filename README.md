@@ -66,5 +66,5 @@ The results we used in our paper were obtained by running the Java code for Line
 [process_results_charts.py](python/process_results_charts.py) can be used for processing `csv` output files to generate overall stats and create suitable files for plots.
 
 ## Team
-- [Mehran Mahmoudi](https://webapps.cs.ualberta.ca/profile/), University of Alberta (Main contact)
+- [Mehran Mahmoudi](https://webapps.cs.ualberta.ca/profile/?who=66938), University of Alberta (Main contact)
 - [Sarah Nadi](http://www.sarahnadi.org), University of Alberta
