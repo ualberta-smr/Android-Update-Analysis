@@ -69,6 +69,7 @@ The results we used in our paper were obtained by running the Java code for Line
 [process_results_charts.py](python/process_results_charts.py) can be used for processing `csv` output files to generate overall stats and create suitable files for plots.
 
 ## How to Cite
+If you are using this project in your research, please cite the following paper:
 ```
 @INPROCEEDINGS{AndroidUpdateProblem, 
 author={M. Mahmoudi and S. Nadi}, 
