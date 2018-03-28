@@ -154,8 +154,8 @@ public class EvolutionAnalyser {
                         genuineChangesMethodsIntersection.add(mutualOldMethod);
                     }
                 }
-//                randomSample(genuineChangesMethodsIntersection, 20, projectOldMethods, projectNewMethods,
-//                        projectModifiedMethods, mappingAndroidOldNew, mappingAndroidOldModified);
+                randomSample(genuineChangesMethodsIntersection, 20, projectOldMethods, projectNewMethods,
+                        projectModifiedMethods, mappingAndroidOldNew, mappingAndroidOldModified);
             }
 
             Map<MethodMapping.Type, List<Integer>> thisTypeStatsForModified = new HashMap<>();
