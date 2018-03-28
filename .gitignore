@@ -7,3 +7,4 @@ java/input/
 java/out/
 java/output/
 META-INF/
+*.csv
