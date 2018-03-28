@@ -83,18 +83,24 @@ for subsystem_result in results['CM']:
     sum_of_body_body = table_array[10, 10]
     sum_of_id_green_both = table_array[0, 1:-2].sum() + table_array[1:-1, 0].sum()
     sum_of_greens = 0
+    sum_of_reds_and_yellows = 0
 
     for row in range(table_array.shape[0]):
         for col in range(table_array.shape[1]):
             if cell_colors[row][col] == 'g':
                 sum_of_greens += table_array[row, col]
+            elif cell_colors[row][col] == 'r' or cell_colors[row][col] == 'y':
+                sum_of_reds_and_yellows += table_array[row, col]
 
     sum_of_non_id_greens = sum_of_greens - sum_of_id_green_both
-    if 1 < sum_of_non_id_greens:# and sum_of_non_id_id < 50:
+    if 1 < sum_of_non_id_greens:  # and sum_of_non_id_id < 50:
         total_count += 1
-        if subsystem_result['subsystem'] == 'packages_apps_Stk':
-            print("fo")
-        print(str(sum_of_non_id_greens) + "/" + str(sum_of_non_id_id) + "\t" + subsystem_result[
-            'subsystem'] + ',' + subsystem_result['ao'] + ',' + subsystem_result['an'] + ',' + subsystem_result[
-                  'mo_version'])
+        # print(str(sum_of_non_id_greens) + "/" + str(sum_of_reds_and_yellows) + '/' + str(sum_of_non_id_id) + "\t" +
+        #       subsystem_result[
+        #           'subsystem'] + ',' + subsystem_result['ao'] + ',' + subsystem_result['an'] + ',' + subsystem_result[
+        #           'mo_version'])
+        print('| {} | {} | {} | {} | {} |'.format(sum_of_non_id_greens, sum_of_reds_and_yellows, sum_of_non_id_id,
+                                                  subsystem_result['subsystem'],
+                                                  subsystem_result['ao'] + ',' + subsystem_result['an'] + ',' +
+                                                  subsystem_result['mo_version']))
 print("Total # of subsystems printed: " + str(total_count))
