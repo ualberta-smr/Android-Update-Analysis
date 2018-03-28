@@ -1,11 +1,11 @@
 package ca.ualberta.mehran.androidevolution.mapping;
 
-import anonymous.authors.androidevolution.CSVUtils;
-import anonymous.authors.androidevolution.mapping.discovery.SpoonHelper;
-import anonymous.authors.androidevolution.mapping.discovery.implementation.BodyChangeOnlyHelper;
-import anonymous.authors.androidevolution.mapping.discovery.implementation.ChangeDistillerHelper;
-import anonymous.authors.androidevolution.mapping.discovery.implementation.RefactoringMinerHelper;
-import anonymous.authors.androidevolution.mapping.discovery.implementation.SourcererHelper;
+import ca.ualberta.mehran.androidevolution.CSVUtils;
+import ca.ualberta.mehran.androidevolution.mapping.discovery.SpoonHelper;
+import ca.ualberta.mehran.androidevolution.mapping.discovery.implementation.BodyChangeOnlyHelper;
+import ca.ualberta.mehran.androidevolution.mapping.discovery.implementation.ChangeDistillerHelper;
+import ca.ualberta.mehran.androidevolution.mapping.discovery.implementation.RefactoringMinerHelper;
+import ca.ualberta.mehran.androidevolution.mapping.discovery.implementation.SourcererHelper;
 
 import java.io.File;
 import java.io.FileWriter;

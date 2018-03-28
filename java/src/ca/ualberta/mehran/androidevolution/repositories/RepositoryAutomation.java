@@ -1,8 +1,8 @@
 package ca.ualberta.mehran.androidevolution.repositories;
 
 
-import anonymous.authors.androidevolution.Utils;
-import anonymous.authors.androidevolution.mapping.EvolutionAnalyser;
+import ca.ualberta.mehran.androidevolution.Utils;
+import ca.ualberta.mehran.androidevolution.mapping.EvolutionAnalyser;
 import org.apache.commons.io.FileUtils;
 
 import java.io.File;
@@ -13,8 +13,8 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.*;
 
-import static anonymous.authors.androidevolution.Utils.log;
-import static anonymous.authors.androidevolution.Utils.runSystemCommand;
+import static ca.ualberta.mehran.androidevolution.Utils.log;
+import static ca.ualberta.mehran.androidevolution.Utils.runSystemCommand;
 
 public class RepositoryAutomation {
 

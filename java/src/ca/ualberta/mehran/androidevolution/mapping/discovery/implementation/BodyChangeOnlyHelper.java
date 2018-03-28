@@ -1,8 +1,8 @@
 package ca.ualberta.mehran.androidevolution.mapping.discovery.implementation;
 
-import anonymous.authors.androidevolution.mapping.MethodMapping;
-import anonymous.authors.androidevolution.mapping.MethodModel;
-import anonymous.authors.androidevolution.mapping.discovery.MappingDiscoverer;
+import ca.ualberta.mehran.androidevolution.mapping.MethodMapping;
+import ca.ualberta.mehran.androidevolution.mapping.MethodModel;
+import ca.ualberta.mehran.androidevolution.mapping.discovery.MappingDiscoverer;
 
 import java.io.File;
 import java.util.*;

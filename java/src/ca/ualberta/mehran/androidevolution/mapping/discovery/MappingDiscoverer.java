@@ -1,6 +1,6 @@
 package ca.ualberta.mehran.androidevolution.mapping.discovery;
 
-import static anonymous.authors.androidevolution.Utils.log;
+import static ca.ualberta.mehran.androidevolution.Utils.log;
 
 public abstract class MappingDiscoverer {
 
