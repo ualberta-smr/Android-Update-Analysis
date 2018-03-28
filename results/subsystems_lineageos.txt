@@ -1,2 +1,0 @@
-Comparison versions,Number of subsystems
-android-6.0.1_r81_android-7.0.0_r1_cm-13.0,23
