@@ -1,7 +1,6 @@
 package ca.ualberta.mehran.androidevolution.mapping.discovery;
 
-import ca.ualberta.mehran.androidevolution.mapping.MethodModel;
-import ca.ualberta.mehran.androidevolution.mapping.discovery.MappingDiscoverer;
+import anonymous.authors.androidevolution.mapping.MethodModel;
 import spoon.Launcher;
 import spoon.reflect.cu.position.NoSourcePosition;
 import spoon.reflect.declaration.CtConstructor;

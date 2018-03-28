@@ -1,28 +1,23 @@
 package ca.ualberta.mehran.androidevolution.repositories;
 
 
-import ca.ualberta.mehran.androidevolution.Utils;
-import ca.ualberta.mehran.androidevolution.mapping.EvolutionAnalyser;
+import anonymous.authors.androidevolution.Utils;
+import anonymous.authors.androidevolution.mapping.EvolutionAnalyser;
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.filefilter.IOFileFilter;
 
 import java.io.File;
 import java.io.FileFilter;
 import java.io.FilenameFilter;
 import java.io.IOException;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
-import java.util.function.Predicate;
 
-import static ca.ualberta.mehran.androidevolution.Utils.log;
-import static ca.ualberta.mehran.androidevolution.Utils.runSystemCommand;
+import static anonymous.authors.androidevolution.Utils.log;
+import static anonymous.authors.androidevolution.Utils.runSystemCommand;
 
 public class RepositoryAutomation {
 
-
-    private static final String SOURCERERCC_PATH = "/home/mehran/sourcerercc";
 
     private static final String OUTPUT_PATH = "output";
     private static final String CSV_INPUT_PATH = "input/csv";
@@ -32,10 +27,12 @@ public class RepositoryAutomation {
 
     public static void main(String[] args) {
 
-        String sourcererCCPath = SOURCERERCC_PATH;
+        String sourcererCCPath = null;
 
         if (args != null && args.length > 0) {
             sourcererCCPath = args[0];
+        } else {
+            throw new RuntimeException("SourcererCC path not provided");
         }
 
         new RepositoryAutomation().run(sourcererCCPath);

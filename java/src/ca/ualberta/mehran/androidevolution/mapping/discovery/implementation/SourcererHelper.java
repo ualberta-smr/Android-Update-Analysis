@@ -1,11 +1,12 @@
 package ca.ualberta.mehran.androidevolution.mapping.discovery.implementation;
 
-import ca.ualberta.mehran.androidevolution.Utils;
-import ca.ualberta.mehran.androidevolution.mapping.MethodMapping;
-import ca.ualberta.mehran.androidevolution.mapping.MethodModel;
-import ca.ualberta.mehran.androidevolution.mapping.discovery.MappingDiscoverer;
+import anonymous.authors.androidevolution.Utils;
+import anonymous.authors.androidevolution.mapping.MethodMapping;
+import anonymous.authors.androidevolution.mapping.MethodModel;
+import anonymous.authors.androidevolution.mapping.discovery.MappingDiscoverer;
 
-import java.io.*;
+import java.io.File;
+import java.io.FileNotFoundException;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;

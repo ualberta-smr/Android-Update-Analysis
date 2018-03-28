@@ -1,6 +1,6 @@
 package ca.ualberta.mehran.androidevolution.mapping;
 
-import ca.ualberta.mehran.androidevolution.Utils;
+import anonymous.authors.androidevolution.Utils;
 import spoon.reflect.declaration.*;
 import spoon.support.reflect.declaration.CtTypeImpl;
 

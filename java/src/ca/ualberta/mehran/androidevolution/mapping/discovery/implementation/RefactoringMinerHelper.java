@@ -1,8 +1,8 @@
 package ca.ualberta.mehran.androidevolution.mapping.discovery.implementation;
 
-import ca.ualberta.mehran.androidevolution.mapping.MethodMapping;
-import ca.ualberta.mehran.androidevolution.mapping.MethodModel;
-import ca.ualberta.mehran.androidevolution.mapping.discovery.MappingDiscoverer;
+import anonymous.authors.androidevolution.mapping.MethodMapping;
+import anonymous.authors.androidevolution.mapping.MethodModel;
+import anonymous.authors.androidevolution.mapping.discovery.MappingDiscoverer;
 import gr.uom.java.xmi.UMLModel;
 import gr.uom.java.xmi.UMLModelASTReader;
 import gr.uom.java.xmi.UMLOperation;
@@ -53,8 +53,10 @@ public class RefactoringMinerHelper extends MappingDiscoverer {
                         projectNewUniqueSignatureMap.containsKey(generateUniqueSignature(destMethodUML))) {
                     MethodModel oldMethod = projectOldUniqueSignatureMap.get(generateUniqueSignature(originalMethodUML));
                     MethodModel newMethod = projectNewUniqueSignatureMap.get(generateUniqueSignature(destMethodUML));
-                    if (!projectOldDiscoveredMethods.contains(oldMethod) && !projectNewDiscoveredMethods.contains(newMethod)) {
-                        result.put(oldMethod, new MethodMapping(newMethod, MethodMapping.Type.REFACTORED));
+                    MethodMapping.Type mappingType = getMappingType(refactoring);
+                    if (!projectOldDiscoveredMethods.contains(oldMethod) && !projectNewDiscoveredMethods.contains(newMethod)
+                            && mappingType != null) {
+                        result.put(oldMethod, new MethodMapping(newMethod, mappingType));
                     }
                 } else {
                     System.out.println("Could not find a method in RefactoringMiner:");
@@ -90,6 +92,19 @@ public class RefactoringMinerHelper extends MappingDiscoverer {
         }
         onFinish();
         return result;
+    }
+
+    private MethodMapping.Type getMappingType(Refactoring refactoring) {
+        if (refactoring instanceof MoveOperationRefactoring) {
+            return MethodMapping.Type.REFACTORED_MOVE;
+        } else if (refactoring instanceof RenameOperationRefactoring) {
+            return MethodMapping.Type.REFACTORED_RENAME;
+        } else if (refactoring instanceof ExtractOperationRefactoring || refactoring instanceof ExtractAndMoveOperationRefactoring) {
+            return MethodMapping.Type.REFACTORED_EXTRACT;
+        } else if (refactoring instanceof InlineOperationRefactoring) {
+            return MethodMapping.Type.REFACTORED_INLINE;
+        }
+        return null;
     }
 
     private <T> Map<String, T> convertDollarSignToDot(Map<String, T> map) {

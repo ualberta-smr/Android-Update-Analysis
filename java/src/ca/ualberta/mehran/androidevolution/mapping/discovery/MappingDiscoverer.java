@@ -1,13 +1,7 @@
 package ca.ualberta.mehran.androidevolution.mapping.discovery;
 
-import java.text.SimpleDateFormat;
-import java.util.Date;
+import static anonymous.authors.androidevolution.Utils.log;
 
-import static ca.ualberta.mehran.androidevolution.Utils.log;
-
-/**
- * Created by mehran on 7/17/17.
- */
 public abstract class MappingDiscoverer {
 
     private long startTime;

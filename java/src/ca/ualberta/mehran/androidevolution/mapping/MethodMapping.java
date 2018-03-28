@@ -39,8 +39,15 @@ public class MethodMapping {
             case OTHER:
                 return true;
 
-            case REFACTORED:
-            case ARGUMENTS_CHANGE:
+            case REFACTORED_MOVE:
+            case REFACTORED_RENAME:
+            case REFACTORED_INLINE:
+            case REFACTORED_EXTRACT:
+            case REFACTORED_ARGUMENTS_RENAME:
+            case REFACTORED_ARGUMENTS_REORDER:
+            case ARGUMENTS_CHANGE_ADD:
+            case ARGUMENTS_CHANGE_REMOVE:
+            case ARGUMENTS_CHANGE_TYPE_CHANGE:
             case BODY_CHANGE_ONLY:
                 return thisMethod.readFromFile().equals(otherMethod.readFromFile());
         }
@@ -61,7 +68,10 @@ public class MethodMapping {
      * KNG_TRANSFORMATIONS: Matches discovered by Kim Miryung's tool.
      */
     public enum Type {
-        IDENTICAL, REFACTORED, ARGUMENTS_CHANGE, BODY_CHANGE_ONLY, NOT_FOUND, ADDED, OTHER, KNG_TRANSFORMATIONS
+        IDENTICAL,
+        REFACTORED_MOVE, REFACTORED_RENAME, REFACTORED_INLINE, REFACTORED_EXTRACT, REFACTORED_ARGUMENTS_RENAME, REFACTORED_ARGUMENTS_REORDER,
+        ARGUMENTS_CHANGE_ADD, ARGUMENTS_CHANGE_REMOVE, ARGUMENTS_CHANGE_TYPE_CHANGE,
+        BODY_CHANGE_ONLY, NOT_FOUND, ADDED, OTHER, KNG_TRANSFORMATIONS
     }
 
 }
