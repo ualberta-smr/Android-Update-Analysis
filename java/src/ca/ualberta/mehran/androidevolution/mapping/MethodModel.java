@@ -143,6 +143,16 @@ public class MethodModel<T> {
         return daEntireThing.toString();
     }
 
+    public String readFromFileUnformatted() {
+        List<String> lines = Utils.readFile(new File(getFilePath()), getLineStart(), getLineEnd());
+        StringBuilder daEntireThing = new StringBuilder();
+        for (String line : lines) {
+            daEntireThing.append(line);
+            daEntireThing.append("\n");
+        }
+        return daEntireThing.toString();
+    }
+
     @Override
     public String toString() {
         if (packageName != null) {

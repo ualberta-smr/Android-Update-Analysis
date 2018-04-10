@@ -55,7 +55,7 @@ public class EvolutionAnalyser {
 //                mappingAndroidOldModified, MethodMapping.Type.BODY_CHANGE_ONLY, MethodMapping.Type.BODY_CHANGE_ONLY, 20);
 
         if (DEBUG_OUTPUT_MAPPINGS_INTERSECTION) {
-            printMappingsIntersection(mappingAndroidOldNew, mappingAndroidOldModified, projectOldMethods);
+            Experiments.writeMappingsIntersectionToFile(subsystemName, mappingAndroidOldNew, mappingAndroidOldModified, projectOldMethods);
         }
 
         Map<MethodMapping.Type, Map<MethodMapping.Type, List<Integer>>> stats = generateIntersectionsOfMappings(projectOldMethods,
@@ -154,8 +154,8 @@ public class EvolutionAnalyser {
                         genuineChangesMethodsIntersection.add(mutualOldMethod);
                     }
                 }
-                randomSample(genuineChangesMethodsIntersection, 20, projectOldMethods, projectNewMethods,
-                        projectModifiedMethods, mappingAndroidOldNew, mappingAndroidOldModified);
+//                randomSample(genuineChangesMethodsIntersection, 20, projectOldMethods, projectNewMethods,
+//                        projectModifiedMethods, mappingAndroidOldNew, mappingAndroidOldModified);
             }
 
             Map<MethodMapping.Type, List<Integer>> thisTypeStatsForModified = new HashMap<>();
@@ -230,16 +230,7 @@ public class EvolutionAnalyser {
         return oldNewAndModifiedIntersectionMap;
     }
 
-    private void printMappingsIntersection(Map<String, MethodMapping> mappingAndroidOldNew, Map<String, MethodMapping> mappingAndroidOldModified, Map<String, MethodModel> projectOldMethods) {
-        for (String oldMethod : mappingAndroidOldModified.keySet()) {
-            if (mappingAndroidOldNew.containsKey(oldMethod) && !(mappingAndroidOldModified.get(oldMethod).getType() == MethodMapping.Type.IDENTICAL && mappingAndroidOldNew.get(oldMethod).getType() == MethodMapping.Type.IDENTICAL)) {
-                System.out.println("AO: " + oldMethod + " " + projectOldMethods.get(oldMethod).getFilePath());
-                System.out.println("AN: " + mappingAndroidOldNew.get(oldMethod).getType() + "\t" +  mappingAndroidOldNew.get(oldMethod).getDestinationMethod() + " " + mappingAndroidOldNew.get(oldMethod).getDestinationMethod().getFilePath());
-                System.out.println("CM: " + mappingAndroidOldModified.get(oldMethod).getType() + "\t" + mappingAndroidOldModified.get(oldMethod).getDestinationMethod() + " " +  mappingAndroidOldModified.get(oldMethod).getDestinationMethod().getFilePath());
-                System.out.println("-------------------------------------------------------");
-            }
-        }
-    }
+
 
     private Collection<String> filterUnmatchedMethods(Collection<String> allMethods, Collection<String> matchedMethods) {
         Collection<String> results = new HashSet<>();

@@ -93,8 +93,10 @@ for subsystem_result in results['CM']:
                 sum_of_reds_and_yellows += table_array[row, col]
 
     sum_of_non_id_greens = sum_of_greens - sum_of_id_green_both
-    if 1 < sum_of_non_id_greens:  # and sum_of_non_id_id < 50:
+    if 0 < sum_of_non_id_greens:  # and sum_of_non_id_id < 50:
         total_count += 1
+        # if 'Stk' in subsystem_result['subsystem']:
+        #     print('fo')
         # print(str(sum_of_non_id_greens) + "/" + str(sum_of_reds_and_yellows) + '/' + str(sum_of_non_id_id) + "\t" +
         #       subsystem_result[
         #           'subsystem'] + ',' + subsystem_result['ao'] + ',' + subsystem_result['an'] + ',' + subsystem_result[
