@@ -38,7 +38,7 @@ public class Utils {
             while ((s = stdError.readLine()) != null) {
                 builder.append(s);
                 builder.append("\n");
-                log(s);
+                if (verbose) log(s);
             }
         } catch (IOException e) {
             e.printStackTrace();
