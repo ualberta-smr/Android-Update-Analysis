@@ -59,7 +59,7 @@ public class Experiments {
         File outputParentFolder = new File("/home/mehran/Thesis/Experiments/" + subsystemName);
         HashMap<String, Integer> intersectionsCount = new HashMap<>();
 
-        for (String oldMethod : mappingAndroidOldModified.keySet()) {
+        for (String oldMethod : projectOldMethods.keySet()) {
             MethodMapping.Type typeAN = MethodMapping.Type.NOT_FOUND;
             if (mappingAndroidOldNew.containsKey(oldMethod)) {
                 typeAN = mappingAndroidOldNew.get(oldMethod).getType();
@@ -98,7 +98,7 @@ public class Experiments {
     }
 
     public static void printMappingsIntersection(Map<String, MethodMapping> mappingAndroidOldNew, Map<String, MethodMapping> mappingAndroidOldModified, Map<String, MethodModel> projectOldMethods) {
-        for (String oldMethod : mappingAndroidOldModified.keySet()) {
+        for (String oldMethod : projectOldMethods.keySet()) {
             MethodMapping.Type typeAN = MethodMapping.Type.NOT_FOUND;
             if (mappingAndroidOldNew.containsKey(oldMethod)) {
                 typeAN = mappingAndroidOldNew.get(oldMethod).getType();
