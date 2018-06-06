@@ -210,15 +210,21 @@ public class CommitBasedAutomation {
     }
 
     private List<Subsystem> getSubsystemsInRepository(String repoName, File gitRepoPath, AospMergeCommit mergeCommit) {
+        Collection<String> manifestsInAospOld = new HashSet<>();
+        Collection<String> allFilesAospOld = new HashSet<>();
+        Collection<String> manifestsInAospNew = new HashSet<>();
+        Collection<String> allFilesAospNew = new HashSet<>();
+        Collection<String> manifestsInCm = new HashSet<>();
+        Collection<String> allFilesCm = new HashSet<>();
 
         gitResetToCommit(gitRepoPath.getAbsolutePath(), mergeCommit.commonAncestorCommit);
-        Collection<String> manifestsInAospOld = getAndroidManifestFiles(gitRepoPath);
+        getAndroidManifestFiles(gitRepoPath, manifestsInAospOld, allFilesAospOld);
 
         gitResetToCommit(gitRepoPath.getAbsolutePath(), mergeCommit.aospParentCommitHash);
-        Collection<String> manifestsInAospNew = getAndroidManifestFiles(gitRepoPath);
+        getAndroidManifestFiles(gitRepoPath, manifestsInAospNew, allFilesAospNew);
 
         gitResetToCommit(gitRepoPath.getAbsolutePath(), mergeCommit.cmParentCommitHash);
-        Collection<String> manifestsInCm = getAndroidManifestFiles(gitRepoPath);
+        getAndroidManifestFiles(gitRepoPath, manifestsInCm, allFilesCm);
 
         // Return the intersection of the three, omit those with test and example
         List<Subsystem> result = new ArrayList<>();
@@ -237,13 +243,8 @@ public class CommitBasedAutomation {
 
                 // Look for src folder
                 subsystemRelativePath += "/src";
-                File srcFodler = new File(gitRepoPath, subsystemRelativePath);
-                gitResetToCommit(gitRepoPath.getAbsolutePath(), mergeCommit.commonAncestorCommit);
-                if (!srcFodler.exists()) continue;
-                gitResetToCommit(gitRepoPath.getAbsolutePath(), mergeCommit.aospParentCommitHash);
-                if (!srcFodler.exists()) continue;
-                gitResetToCommit(gitRepoPath.getAbsolutePath(), mergeCommit.cmParentCommitHash);
-                if (!srcFodler.exists()) continue;
+                if (!allFilesAospOld.contains(subsystemRelativePath) || !allFilesAospNew.contains(subsystemRelativePath)
+                        || !allFilesCm.contains(subsystemRelativePath)) continue;
 
                 result.add(new Subsystem(repoName, subsystemName, subsystemRelativePath, gitRepoPath.getAbsolutePath()));
             }
@@ -264,16 +265,18 @@ public class CommitBasedAutomation {
         });
     }
 
-    private Collection<String> getAndroidManifestFiles(File path) {
-        Set<String> result = new HashSet<>();
+    private void getAndroidManifestFiles(File path, Collection<String> manifestFiles, Collection<String> allFiles) {
+
         try {
             Files.walk(Paths.get(path.getAbsolutePath()))
-                    .filter(pathToFile -> pathToFile.endsWith("AndroidManifest.xml"))
-                    .forEach(t -> result.add(t.toString().substring(path.getAbsolutePath().length())));
+                    .forEach(t -> {
+                        allFiles.add(t.toString().substring(path.getAbsolutePath().length()));
+                        if (t.endsWith("AndroidManifest.xml"))
+                            manifestFiles.add(t.toString().substring(path.getAbsolutePath().length()));
+                    });
         } catch (IOException e) {
             e.printStackTrace();
         }
-        return result;
     }
 
     private void removeFolder(File file) {
