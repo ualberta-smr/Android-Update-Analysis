@@ -92,7 +92,12 @@ public class CommitBasedAutomation {
                         String mergeStatus = canAutomaticallyMerge ? "nc" : "c";
 
                         List<Subsystem> subsystems = getSubsystemsInRepository(pairedRepository.name, gitRepoPath, mergeCommit);
+
+                        int subsystemIndex = 0;
                         for (Subsystem subsystem : subsystems) {
+                            subsystemIndex++;
+                            log(String.format("Analysing subsystem %s... (%d/%d)", subsystem.repository + "/" + subsystem.name, subsystemIndex, subsystems.size()));
+
                             String analysisName = String.format("%s-%s-%s-%s", pairedRepository.name, subsystem.name, mergeCommit.commitHash, mergeStatus);
 
                             File comparisonFolderParent = new File(generalRepoPath, analysisName);
@@ -325,7 +330,7 @@ public class CommitBasedAutomation {
     private boolean gitReplayAospMerge(String path, AospMergeCommit mergeCommit) {
         if (!gitResetToCommit(path, mergeCommit.cmParentCommitHash)) return false;
         String result = runSystemCommand(path, false, "git", "merge", mergeCommit.aospParentCommitHash);
-        if (result.contains("Automatic merge failed".toLowerCase())) {
+        if (result.toLowerCase().contains("Automatic merge failed".toLowerCase())) {
             gitResetToCommit(path, mergeCommit.cmParentCommitHash);
             return false;
         }
