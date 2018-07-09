@@ -154,20 +154,27 @@ public class EvolutionAnalyser {
             }
 
             Map<MethodMapping.Type, List<Integer>> thisTypeStatsForModified = new HashMap<>();
-            for (MethodMapping.Type newModifiedType : thisTypeMappingForModified.keySet()) {
-                // Random sample
-//                if ((type == MethodMapping.Type.IDENTICAL || type == MethodMapping.Type.NOT_FOUND) && type1 == MethodMapping.Type.NOT_FOUND) {
-//                    randomSample(thisTypeMappingForModified.get(type1), 20, projectOldMethods, projectNewMethods,
-//                            projectModifiedMethods, mappingAndroidOldNew, mappingAndroidOldModified);
-//                }
-                int intersectionCount = thisTypeMappingForModified.get(newModifiedType).size();
-                if (newModifiedType != MethodMapping.Type.IDENTICAL && newModifiedType == oldNewType) {
+            for (MethodMapping.Type oldModifiedType : thisTypeMappingForModified.keySet()) {
+                // Print specific type
+                if (oldNewType == MethodMapping.Type.REFACTORED_ARGUMENTS_RENAME && oldModifiedType == MethodMapping.Type.REFACTORED_ARGUMENTS_RENAME) {
+                    System.out.println("AN:" + oldNewType + ",CM:" + oldModifiedType);
+                    for (String oldMethod : thisTypeMappingForModified.get(oldModifiedType)) {
+                        if (!mappingAndroidOldNew.get(oldMethod).equals(mappingAndroidOldModified.get(oldMethod))) {
+                            System.out.println("AO: " + oldMethod + " " + projectOldMethods.get(oldMethod).getFilePath());
+                            System.out.println("AN: " + mappingAndroidOldNew.get(oldMethod).getDestinationMethod() + " " + mappingAndroidOldNew.get(oldMethod).getDestinationMethod().getFilePath());
+                            System.out.println("CM: " + mappingAndroidOldModified.get(oldMethod).getDestinationMethod() + " " + mappingAndroidOldModified.get(oldMethod).getDestinationMethod().getFilePath());
+                            System.out.println("-----------------------------------------------");
+                        }
+                    }
+                }
+                int intersectionCount = thisTypeMappingForModified.get(oldModifiedType).size();
+                if (oldModifiedType != MethodMapping.Type.IDENTICAL && oldModifiedType == oldNewType) {
                     List<Integer> countList = new ArrayList<>();
                     countList.add(intersectionCount - purgedMutualMethods);
                     countList.add(purgedMutualMethods);
-                    thisTypeStatsForModified.put(newModifiedType, countList);
+                    thisTypeStatsForModified.put(oldModifiedType, countList);
                 } else {
-                    thisTypeStatsForModified.put(newModifiedType, Arrays.asList(intersectionCount));
+                    thisTypeStatsForModified.put(oldModifiedType, Arrays.asList(intersectionCount));
                 }
             }
             oldNewAndModifiedIntersectionMap.put(oldNewType, thisTypeStatsForModified);

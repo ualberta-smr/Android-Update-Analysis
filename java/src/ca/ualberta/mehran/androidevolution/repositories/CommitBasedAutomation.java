@@ -24,6 +24,7 @@ public class CommitBasedAutomation {
     private static final String REPOS_PATH = "input/repos";
 
     private static final String VERSION_LINE_PREFIX = "versions:";
+    private static final boolean DEBUG = true;
 
     public static void main(String[] args) {
 
@@ -35,7 +36,25 @@ public class CommitBasedAutomation {
             throw new RuntimeException("SourcererCC path not provided");
         }
 
-        new CommitBasedAutomation().run(sourcererCCPath);
+        if (DEBUG) {
+            new CommitBasedAutomation().targetedRun(sourcererCCPath, "android_packages_apps_Calculator", "https://github.com/LineageOS/android_packages_apps_Calculator", "5c5a1623a41cc100a744aca4931466eb3543ffcc", "src");
+        } else {
+            new CommitBasedAutomation().run(sourcererCCPath);
+        }
+    }
+
+    private void targetedRun(String sourcererCCPath, String name, String repoUrl, String commitHash, String subsystemFolder) {
+        Repository repository = new Repository(name, repoUrl);
+        String generalRepoPath = new File(REPOS_PATH, repository.name).getAbsolutePath();
+        File gitRepoPath = new File(generalRepoPath, "CM");
+        gitRepoPath.mkdirs();
+        checkoutRepository(repository, gitRepoPath);
+
+        Subsystem subsystem = new Subsystem(repository.name, subsystemFolder, subsystemFolder, gitRepoPath.getAbsolutePath());
+        AospMergeCommit mergeCommit = populateMergeCommit(gitRepoPath.getAbsolutePath(), commitHash);
+
+        processSubsystem(subsystem, repository, mergeCommit, "c", generalRepoPath, gitRepoPath,
+                null, new EvolutionAnalyser(), sourcererCCPath);
     }
 
     public void run(String sourcererCCPath) {
@@ -45,7 +64,7 @@ public class CommitBasedAutomation {
             String projectName = projectInputCSVsDir.getName();
             File[] inputCsvFiles = getProjectInputCsvFiles(projectInputCSVsDir);
 
-            Set<PairedRepository> pairedRepositories = new HashSet<>();
+            Set<Repository> pairedRepositories = new HashSet<>();
 
             for (File inputCsvFile : inputCsvFiles) {
                 if (!isValidInputCsvFile(inputCsvFile)) continue;
@@ -59,104 +78,133 @@ public class CommitBasedAutomation {
 
     }
 
-    private void prepareForAnalysis(String projectName, Set<PairedRepository> pairedRepositories, String sourcererCCPath) {
+    private void prepareForAnalysis(String projectName, Set<Repository> pairedRepositories, String sourcererCCPath) {
 
         EvolutionAnalyser evolutionAnalyser = new EvolutionAnalyser();
         String outputPath = new File(OUTPUT_PATH, projectName).getAbsolutePath();
 
         int repositoryIndex = 0;
-        for (PairedRepository pairedRepository : pairedRepositories) {
+        for (Repository repository : pairedRepositories) {
             repositoryIndex++;
-            log(String.format("Working on %s... (%d/%d)", pairedRepository, repositoryIndex, pairedRepositories.size()));
-            String generalRepoPath = new File(REPOS_PATH, pairedRepository.name).getAbsolutePath();
-            File gitRepoPath = new File(generalRepoPath, projectName);
-            gitRepoPath.mkdirs();
-            checkoutRepository(pairedRepository, gitRepoPath);
+            log(String.format("Working on %s... (%d/%d)", repository, repositoryIndex, pairedRepositories.size()));
 
-            // Find merge commits
-            String[] branches = new String[]{"lineage-15.1", "lineage-15.0", "cm-14.1", "cm-14.0", "cm-13.0", "cm-12.1", "cm-12.0", "cm-11.0"};
+            processRepository(projectName, repository, outputPath, evolutionAnalyser, sourcererCCPath);
+        }
+    }
 
-            int branchIndex = 0;
-            for (String branch : branches) {
-                branchIndex++;
-                log(String.format("Switching to %s... (%d/%d)", branch, branchIndex, branches.length));
-                if (gitChangeBranch(gitRepoPath.getAbsolutePath(), branch)) {
-                    List<AospMergeCommit> mergeCommits = findUpstreamMergeCommits(gitRepoPath.getAbsolutePath());
-                    log("Found " + mergeCommits.size() + " merge commits.");
+    private void processRepository(String projectName, Repository repository, String outputPath,
+                                   EvolutionAnalyser evolutionAnalyser, String sourcererCCPath) {
+        String generalRepoPath = new File(REPOS_PATH, repository.name).getAbsolutePath();
+        File gitRepoPath = new File(generalRepoPath, projectName);
+        gitRepoPath.mkdirs();
+        checkoutRepository(repository, gitRepoPath);
 
-                    int commitIndex = 0;
-                    for (AospMergeCommit mergeCommit : mergeCommits) {
-                        commitIndex++;
-                        log(String.format("Trying commit %.7s... (%d/%d)", mergeCommit.commitHash, commitIndex, mergeCommits.size()));
-                        boolean canAutomaticallyMerge = gitReplayAospMerge(gitRepoPath.getAbsolutePath(), mergeCommit);
-                        String mergeStatus = canAutomaticallyMerge ? "nc" : "c";
+        // Find merge commits
+        String[] branches = new String[]{"lineage-15.1", "lineage-15.0", "cm-14.1", "cm-14.0", "cm-13.0", "cm-12.1", "cm-12.0", "cm-11.0"};
 
-                        List<Subsystem> subsystems = getSubsystemsInRepository(pairedRepository.name, gitRepoPath, mergeCommit);
+        int branchIndex = 0;
+        for (String branch : branches) {
+            branchIndex++;
+            log(String.format("Switching to %s... (%d/%d)", branch, branchIndex, branches.length));
 
-                        int subsystemIndex = 0;
-                        for (Subsystem subsystem : subsystems) {
-                            subsystemIndex++;
-                            log(String.format("Analysing subsystem %s... (%d/%d)", subsystem.repository + "/" + subsystem.name, subsystemIndex, subsystems.size()));
+            processBranch(branch, repository, generalRepoPath, gitRepoPath, outputPath, evolutionAnalyser,
+                    sourcererCCPath);
+        }
+    }
 
-                            String analysisName = String.format("%s-%s-%s-%s", pairedRepository.name, subsystem.name, mergeCommit.commitHash, mergeStatus);
+    private void processBranch(String branch, Repository repository, String generalRepoPath,
+                               File gitRepoPath, String outputPath,
+                               EvolutionAnalyser evolutionAnalyser, String sourcererCCPath) {
+        if (gitChangeBranch(gitRepoPath.getAbsolutePath(), branch)) {
+            List<AospMergeCommit> mergeCommits = findUpstreamMergeCommits(gitRepoPath.getAbsolutePath());
+            log("Found " + mergeCommits.size() + " merge commits.");
 
-                            File comparisonFolderParent = new File(generalRepoPath, analysisName);
-                            comparisonFolderParent.mkdir();
+            int commitIndex = 0;
+            for (AospMergeCommit mergeCommit : mergeCommits) {
+                commitIndex++;
+                log(String.format("Trying commit %.7s... (%d/%d)", mergeCommit.commitHash, commitIndex, mergeCommits.size()));
 
-                            // If output file for analysis exists, don't run the analysis.
-                            if (new File(outputPath, analysisName + ".csv").exists()) {
-                                log("Analysis already performed; skipping.");
-                                removeFolder(comparisonFolderParent);
-                                continue;
-                            }
+                processCommit(repository, mergeCommit, generalRepoPath, gitRepoPath, outputPath,
+                        evolutionAnalyser, sourcererCCPath);
+            }
 
+        }
+    }
 
-//                            ComparisionFolder comparisionFolderAoAn = new ComparisionFolder(comparisonFolderParent.getAbsolutePath(),
-//                                    mergeCommit.commonAncestorCommit, mergeCommit.aospParentCommitHash);
-//                            ComparisionFolder comparisionFolderAoCm = new ComparisionFolder(comparisonFolderParent.getAbsolutePath(),
-//                                    mergeCommit.commonAncestorCommit, mergeCommit.cmParentCommitHash);
+    private void processCommit(Repository repository, AospMergeCommit mergeCommit, String generalRepoPath,
+                               File gitRepoPath, String outputPath,
+                               EvolutionAnalyser evolutionAnalyser, String sourcererCCPath) {
+        boolean canAutomaticallyMerge = gitReplayAospMerge(gitRepoPath.getAbsolutePath(), mergeCommit);
+        String mergeStatus = canAutomaticallyMerge ? "nc" : "c";
 
-                            ComparisionFolder comparisionFolderAoAn = new ComparisionFolder(comparisonFolderParent.getAbsolutePath(),
-                                    "AO", "AN");
-                            ComparisionFolder comparisionFolderAoCm = new ComparisionFolder(comparisonFolderParent.getAbsolutePath(),
-                                    "AO", "CM");
+        List<Subsystem> subsystems = getSubsystemsInRepository(repository.name, gitRepoPath, mergeCommit);
 
-                            if (!gitResetToCommit(gitRepoPath.getAbsolutePath(), mergeCommit.commonAncestorCommit))
-                                continue;
-                            copyFolder(new File(gitRepoPath.getAbsolutePath(), subsystem.relativePath).getAbsolutePath(), comparisionFolderAoAn.getOldVersionPath());
-                            copyFolder(new File(gitRepoPath.getAbsolutePath(), subsystem.relativePath).getAbsolutePath(), comparisionFolderAoCm.getOldVersionPath());
+        int subsystemIndex = 0;
+        for (Subsystem subsystem : subsystems) {
+            subsystemIndex++;
+            log(String.format("Analysing subsystem %s... (%d/%d)", subsystem.repository + "/" + subsystem.name, subsystemIndex, subsystems.size()));
 
-                            if (!gitResetToCommit(gitRepoPath.getAbsolutePath(), mergeCommit.aospParentCommitHash))
-                                continue;
-                            copyFolder(new File(gitRepoPath.getAbsolutePath(), subsystem.relativePath).getAbsolutePath(), comparisionFolderAoAn.getNewVersionPath());
+            processSubsystem(subsystem, repository, mergeCommit, mergeStatus, generalRepoPath,
+                    gitRepoPath, outputPath, evolutionAnalyser, sourcererCCPath);
+        }
+    }
 
-                            if (!gitResetToCommit(gitRepoPath.getAbsolutePath(), mergeCommit.cmParentCommitHash))
-                                continue;
-                            copyFolder(new File(gitRepoPath.getAbsolutePath(), subsystem.relativePath).getAbsolutePath(), comparisionFolderAoCm.getNewVersionPath());
+    private void processSubsystem(Subsystem subsystem, Repository repository, AospMergeCommit mergeCommit,
+                                  String mergeStatus, String generalRepoPath, File gitRepoPath, String outputPath,
+                                  EvolutionAnalyser evolutionAnalyser, String sourcererCCPath) {
+        if (mergeCommit == null) {
+            log("Invalid merge commit");
+            return;
+        }
+        String analysisName = String.format("%s-%s-%s-%s", repository.name, subsystem.name, mergeCommit.commitHash, mergeStatus);
 
-                            try {
-                                evolutionAnalyser.run(analysisName, comparisionFolderAoAn.getPath(),
-                                        comparisionFolderAoAn.getOldVersionPath(), comparisionFolderAoAn.getNewVersionPath(),
-                                        comparisionFolderAoCm.getPath(), comparisionFolderAoCm.getOldVersionPath(),
-                                        comparisionFolderAoCm.getNewVersionPath(), sourcererCCPath, outputPath);
-                            } catch (Throwable e) {
-                                log("An exception occurred while analyzing " + analysisName + ": " + e.getMessage());
-                                for (StackTraceElement stackTraceElement : e.getStackTrace()) {
-                                    log(stackTraceElement.toString());
-                                }
-                                e.printStackTrace();
-                            } finally {
-                                removeFolder(comparisonFolderParent);
-                            }
-                        }
-                    }
+        File comparisonFolderParent = new File(generalRepoPath, analysisName);
+        comparisonFolderParent.mkdir();
 
-                }
+        // If output file for analysis exists, don't run the analysis.
+        if (!DEBUG && new File(outputPath, analysisName + ".csv").exists()) {
+            log("Analysis already performed; skipping.");
+            removeFolder(comparisonFolderParent);
+            return;
+        }
+
+        ComparisionFolder comparisionFolderAoAn = new ComparisionFolder(comparisonFolderParent.getAbsolutePath(),
+                "AO", "AN");
+        ComparisionFolder comparisionFolderAoCm = new ComparisionFolder(comparisonFolderParent.getAbsolutePath(),
+                "AO", "CM");
+
+        if (!gitResetToCommit(gitRepoPath.getAbsolutePath(), mergeCommit.commonAncestorCommit))
+            return;
+        copyFolder(new File(gitRepoPath.getAbsolutePath(), subsystem.relativePath).getAbsolutePath(), comparisionFolderAoAn.getOldVersionPath());
+        copyFolder(new File(gitRepoPath.getAbsolutePath(), subsystem.relativePath).getAbsolutePath(), comparisionFolderAoCm.getOldVersionPath());
+
+        if (!gitResetToCommit(gitRepoPath.getAbsolutePath(), mergeCommit.aospParentCommitHash))
+            return;
+        copyFolder(new File(gitRepoPath.getAbsolutePath(), subsystem.relativePath).getAbsolutePath(), comparisionFolderAoAn.getNewVersionPath());
+
+        if (!gitResetToCommit(gitRepoPath.getAbsolutePath(), mergeCommit.cmParentCommitHash))
+            return;
+        copyFolder(new File(gitRepoPath.getAbsolutePath(), subsystem.relativePath).getAbsolutePath(), comparisionFolderAoCm.getNewVersionPath());
+
+        try {
+            evolutionAnalyser.run(analysisName, comparisionFolderAoAn.getPath(),
+                    comparisionFolderAoAn.getOldVersionPath(), comparisionFolderAoAn.getNewVersionPath(),
+                    comparisionFolderAoCm.getPath(), comparisionFolderAoCm.getOldVersionPath(),
+                    comparisionFolderAoCm.getNewVersionPath(), sourcererCCPath, outputPath);
+        } catch (Throwable e) {
+            log("An exception occurred while analyzing " + analysisName + ": " + e.getMessage());
+            for (StackTraceElement stackTraceElement : e.getStackTrace()) {
+                log(stackTraceElement.toString());
+            }
+            e.printStackTrace();
+        } finally {
+            if (!DEBUG) {
+                removeFolder(comparisonFolderParent);
             }
         }
     }
 
-    private void readInputCsvFile(File inputCsvFile, Set<PairedRepository> pairedRepositories) {
+    private void readInputCsvFile(File inputCsvFile, Set<Repository> pairedRepositories) {
         try {
             Scanner input = new Scanner(inputCsvFile);
             while (input.hasNextLine()) {
@@ -168,8 +216,8 @@ public class CommitBasedAutomation {
                 } else if (line.split(",").length >= 3) {
                     String[] cells = line.split(",");
                     if (cells.length >= 3) {
-                        PairedRepository pairedRepository = new PairedRepository(cells[0], cells[1], cells[2]);
-                        pairedRepositories.add(pairedRepository);
+                        Repository repository = new Repository(cells[0], cells[2]);
+                        pairedRepositories.add(repository);
                     }
                 }
             }
@@ -257,8 +305,8 @@ public class CommitBasedAutomation {
         return result;
     }
 
-    private void checkoutRepository(PairedRepository pairedRepository, File cloneRepoPath) {
-        gitClone(pairedRepository.cmRepositoryURL, cloneRepoPath.getParentFile().getAbsolutePath(), cloneRepoPath.getName());
+    private void checkoutRepository(Repository repository, File cloneRepoPath) {
+        gitClone(repository.cmRepositoryURL, cloneRepoPath.getParentFile().getAbsolutePath(), cloneRepoPath.getName());
     }
 
     private File[] getProjectInputCsvFiles(File projectInputCsvPath) {
@@ -306,10 +354,6 @@ public class CommitBasedAutomation {
         runSystemCommand(path, false, "git", "clone", url, folderName);
     }
 
-    private void gitAddRemoteAosp(PairedRepository pairedRepository, File cloneRepoPath) {
-        runSystemCommand(cloneRepoPath.getAbsolutePath(), true, "git", "remote", "add", "aosp", pairedRepository.androidRepositoryURL);
-    }
-
     private void gitCreateOrChangeToPlayground(String path) {
         runSystemCommand(path, false, "git", "reset", "--hard");
         if (!gitChangeBranch(path, "playground"))
@@ -341,27 +385,42 @@ public class CommitBasedAutomation {
         List<AospMergeCommit> mergeCommits = new ArrayList<>();
         String currentCommit = runSystemCommand(path, false, "git", "log", "-1", "--format=%H").trim();
         for (int i = 0; i < 200; i++) {
-            String parentCommits = runSystemCommand(path, false, "git", "log", "-1", "--format=%P", currentCommit).trim();
-            if (parentCommits.trim().equals("")) break;
+            AospMergeCommit mergeCommit = populateMergeCommit(path, currentCommit);
+            if (mergeCommit != null && mergeCommit.cmParentCommitHash != null) {
+                if (mergeCommit.aospParentCommitHash != null && mergeCommit.commonAncestorCommit != null) {
 
-            // This is a merge commit
-            if (parentCommits.contains(" ")) {
-                String commitMessage = runSystemCommand(path, false, "git", "log", "-1", "--format=%B", currentCommit);
-                if (commitMessage.matches(".*(android-\\d+.+_r\\d+)[\\S\\s]*")) {
-                    String cmParentCommit = parentCommits.split(" ")[0];
-                    String aospParentCommit = parentCommits.split(" ")[1];
-                    String commonAncestorCommit = runSystemCommand(path, false, "git", "merge-base",
-                            cmParentCommit, aospParentCommit).trim();
-                    AospMergeCommit mergeCommit = new AospMergeCommit(currentCommit, cmParentCommit, aospParentCommit,
-                            commonAncestorCommit,
-                            commitMessage.replaceFirst(".*(android-\\d+.+_r\\d+)[\\S\\s]*", "$1"));
                     mergeCommits.add(mergeCommit);
                 }
+                currentCommit = mergeCommit.cmParentCommitHash;
+            } else {
+                break;
             }
-            currentCommit = parentCommits.split(" ")[0];
         }
         Collections.reverse(mergeCommits);
         return mergeCommits;
+    }
+
+    private AospMergeCommit populateMergeCommit(String path, String mergeCommitHash) {
+        String parentCommits = runSystemCommand(path, false, "git", "log", "-1", "--format=%P", mergeCommitHash).trim();
+        if (parentCommits.trim().equals("")) return null;
+
+        // This is a merge commit
+        if (parentCommits.contains(" ")) {
+            String commitMessage = runSystemCommand(path, false, "git", "log", "-1", "--format=%B", mergeCommitHash);
+            String cmParentCommit = parentCommits.split(" ")[0];
+            String aospParentCommit = parentCommits.split(" ")[1];
+            String commonAncestorCommit = runSystemCommand(path, false, "git", "merge-base",
+                    cmParentCommit, aospParentCommit).trim();
+            if (commitMessage.matches(".*(android-\\d+.+_r\\d+)[\\S\\s]*")) {
+                return new AospMergeCommit(mergeCommitHash, cmParentCommit, aospParentCommit,
+                        commonAncestorCommit,
+                        commitMessage.replaceFirst(".*(android-\\d+.+_r\\d+)[\\S\\s]*", "$1"));
+            }
+            return new AospMergeCommit(mergeCommitHash, cmParentCommit, aospParentCommit,
+                    commonAncestorCommit, null);
+        }
+        return new AospMergeCommit(mergeCommitHash, parentCommits, null,
+                null, null);
     }
 
     private class AospMergeCommit {
@@ -380,13 +439,13 @@ public class CommitBasedAutomation {
         String repository;
         String name;
         String relativePath;
-        String cloneRepoPath;
+        String gitRepoPath;
 
-        public Subsystem(String repository, String name, String relativePath, String cloneRepoPath) {
+        public Subsystem(String repository, String name, String relativePath, String gitRepoPath) {
             this.repository = repository;
             this.name = name;
             this.relativePath = relativePath;
-            this.cloneRepoPath = cloneRepoPath;
+            this.gitRepoPath = gitRepoPath;
         }
 
         @Override
@@ -436,14 +495,12 @@ public class CommitBasedAutomation {
         }
     }
 
-    private class PairedRepository {
+    private class Repository {
         String name;
-        String androidRepositoryURL;
         String cmRepositoryURL;
 
-        PairedRepository(String name, String androidRepositoryURL, String cmRepositoryURL) {
+        Repository(String name, String cmRepositoryURL) {
             this.name = name;
-            this.androidRepositoryURL = androidRepositoryURL;
             this.cmRepositoryURL = cmRepositoryURL;
         }
 
@@ -454,8 +511,8 @@ public class CommitBasedAutomation {
 
         @Override
         public boolean equals(Object obj) {
-            if (!(obj instanceof PairedRepository)) return false;
-            return ((PairedRepository) obj).name.equals(name);
+            if (!(obj instanceof Repository)) return false;
+            return ((Repository) obj).name.equals(name);
         }
 
         @Override
