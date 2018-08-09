@@ -73,24 +73,28 @@ The results we used in our paper were obtained by running the Java code for Line
 ## How to Cite
 If you are using this project in your research, please cite the following paper:
 ```
-@INPROCEEDINGS{AndroidUpdateProblem, 
-author={M. Mahmoudi and S. Nadi}, 
-booktitle={15th International Conference on Mining Software Repositories}, 
-title={The Android Update Problem: An Empirical Study}, 
-year={2018}, 
-volume={}, 
-number={}, 
-pages={}, 
-keywords={Android;Software evolution;Software merging;Merge conflicts}, 
-doi={10.1145/3196398.3196434}, 
-ISSN={}, 
-month={May},
-}
+@inproceedings{AndroidUpdateProblem,
+ author = {Mahmoudi, Mehran and Nadi, Sarah},
+ title = {The Android Update Problem: An Empirical Study},
+ booktitle = {Proceedings of the 15th International Conference on Mining Software Repositories},
+ series = {MSR '18},
+ year = {2018},
+ isbn = {978-1-4503-5716-6},
+ location = {Gothenburg, Sweden},
+ pages = {220--230},
+ numpages = {11},
+ url = {http://doi.acm.org/10.1145/3196398.3196434},
+ doi = {10.1145/3196398.3196434},
+ acmid = {3196434},
+ publisher = {ACM},
+ address = {New York, NY, USA},
+ keywords = {Android, merge conflicts, software evolution, software merging},
+} 
 ```
 
 ## Publications
 - Mehran Mahmoudi and Sarah Nadi, "[The Android Update Problem:
-An Empirical Study](https://arxiv.org/abs/1801.02716)", _15th International Conference on
+An Empirical Study](https://dl.acm.org/citation.cfm?id=3196434)", _15th International Conference on
 Mining Software Repositories, May 28–29, 2018, Gothenburg, Sweden_
 
 
