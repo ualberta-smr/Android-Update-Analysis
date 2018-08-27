@@ -97,7 +97,11 @@ If you are using this project in your research, please cite the following paper:
 An Empirical Study](https://dl.acm.org/citation.cfm?id=3196434)", _15th International Conference on
 Mining Software Repositories, May 28–29, 2018, Gothenburg, Sweden_
 
-
+## License
+This project is available under [GNU General Public License v3.0](LICENSE). Third party libraries used are licensed as follows:
+ * ChangeDistiller: [Apache 2.0](http://www.apache.org/licenses/LICENSE-2.0)
+ * Spoon: [CeCILL-C license - French equivalent to LGPL](https://github.com/INRIA/spoon/blob/master/LICENSE.txt)
+ * SourcererCC: [GNU General Public License v3.0](https://github.com/Mondego/SourcererCC/blob/master/LICENSE)
 
 ## Team
 - [Mehran Mahmoudi](https://webapps.cs.ualberta.ca/profile/?who=66938), University of Alberta (Main contact)
