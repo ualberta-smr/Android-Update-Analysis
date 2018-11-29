@@ -1,10 +1,11 @@
 .DS_Store
 */.DS_Store
 */.idea/
-*/*.iml
+*.iml
 .idea/
-java/input/
-java/out/
-java/output/
+target
+input/
+out/
+output/
 META-INF/
 *.csv
