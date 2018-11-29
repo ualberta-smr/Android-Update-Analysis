@@ -27,15 +27,16 @@ public class RepositoryAutomation {
 
     public static void main(String[] args) {
 
-        String sourcererCCPath = null;
+        String sourcererCCPath = "./sourcerercc";
 
         if (args != null && args.length > 0) {
             sourcererCCPath = args[0];
-        } else {
-            throw new RuntimeException("SourcererCC path not provided");
         }
+//        else {
+//            throw new RuntimeException("SourcererCC path not provided");
+//        }
 
-        new RepositoryAutomation().run(sourcererCCPath);
+        new RepositoryAutomation().run(new File(sourcererCCPath).getAbsolutePath());
     }
 
     public void run(String sourcererCCPath) {

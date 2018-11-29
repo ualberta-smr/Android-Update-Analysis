@@ -9,3 +9,4 @@ out/
 output/
 META-INF/
 *.csv
+android-update-analysis.jar
