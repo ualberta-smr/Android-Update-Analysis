@@ -4,7 +4,7 @@
 *.iml
 .idea/
 target
-input/
+input/repos
 out/
 output/
 META-INF/

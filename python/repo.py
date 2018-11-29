@@ -13,6 +13,7 @@ def read_file(path):
 
 
 def download_url(url):
+    print(url)
     response = urllib.request.urlopen(url)
     data = response.read()
     text = data.decode('utf-8')
