@@ -1,4 +1,4 @@
-# Android Update Analysis
+# Android Update Analysis [![Build Status](https://travis-ci.com/ualberta-smr/Android-Update-Analysis.svg?branch=master)](https://travis-ci.com/ualberta-smr/Android-Update-Analysis)
 A project for comparing changes between Android's proprietary updates and other independently modified versions of it, such as the OS distributed by phone vendors or community-based variants.
 
 The master branch contains the latest changes. You can check out the [code used for our MSR '18](https://github.com/ualberta-smr/Android-Update-Analysis/tree/msr-2018-submission) submission.
