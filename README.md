@@ -14,9 +14,9 @@ Running the code from scratch involves multiple steps.
 ### 1. Mutual repositories
 You should first fetch the list of mutual repositories between corresponding Android and custom system versions. This can be achieved by running the [repo.py](python/repo.py) script. This script requires [repos_config.xml](python/repos_config.xml) as in input. This file includes the list of Android-based systems you want to study ("projects"), and the URL to the manifest file that includes the list of required repositories for each version. A sample file is provided in the repo which includes only 1 project, LieangeOS, and the latest 8 versions of it. You can add additional projects to this file by adding a new `<project>` tag.
 
-This script will create a `csv` file for each pair of Android and "project" version, containing a list of repositories and their AOSP and "project" URLs. These files will be used as the input of the Java code which performs the analysis.
+This script will create a `csv` file for each pair of Android and "project" version, containing a list of repositories and their AOSP and "project" URLs. These files will be used as the input of the Java code which performs the analysis. A sample folder named CM already exists.
 
-After the scripts finishes running, please copy all `csv` files to `input/csv/project_name/`.
+After the scripts finishes running, please copy each projects folder (For example CM) to `input/csv/`.
 
 ### 2. Build the project
 Run the following command to compile the project and create an executable JAR file:
