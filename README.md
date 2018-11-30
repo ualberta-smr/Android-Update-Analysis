@@ -32,10 +32,8 @@ You can run the JAR file with the following command:
  ```
  
 ### 4. Process results & draw plots
-[process_results_charts.py](python/process_results_charts.py) can be used for processing `csv` output files to generate overall stats and create suitable files for plots.
-
-## Results
-The results we used in our paper were obtained by running the Java code for LineageOS with the provided [repos_config.xml](python/repos_config.xml) file. They are available in the [results](results) directory. The Java code took 14 hours and 25 minutes to execute, on a machine with 128 GB of memory and an AMD Ryzen Threadripper 1950X 16-Core processor.
+[This repository](https://github.com/ualberta-smr/Android-Update-Analysis-Results) contains instructions on how to create plots using the results.
+You can also view the data we used in our MSR '18 submission there. The results we used in our paper were obtained by running the Java code for LineageOS with the provided [repos_config.xml](python/repos_config.xml) file. They are available in the [results](results) directory.
 
 
 ## Input and output files
